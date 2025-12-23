@@ -1,0 +1,26 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getDateFromSlug } from "../../utils/getDateFromSlug";
+
+const { slug } = Astro.params;
+
+const posts = await getCollection("blog");
+const post = posts.find(p => p.slug === slug);
+
+if (!post) {
+  throw new Error("Post not found");
+}
+
+const date = getDateFromSlug(post.slug);
+---
+
+<BaseLayout
+  title={post.data.title ?? post.slug}
+  date={date}
+>
+  <article>
+    <h1>{post.data.title ?? post.slug}</h1>
+    <post.render />
+  </article>
+</BaseLayout>
