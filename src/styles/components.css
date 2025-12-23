@@ -1,0 +1,145 @@
+/* ===== Utility ===== */
+
+.sep{
+  opacity: 0.6;
+}
+
+.skip-link{
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 120ms ease;
+  z-index: 99999;
+}
+
+.skip-link:focus{
+  transform: translateY(0);
+}
+
+/* ===== Header ===== */
+
+.site-header{
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid var(--border);
+  background: rgba(252,252,252,0.78);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .site-header{
+  background: rgba(15,15,15,0.78);
+}
+
+.site-header-inner{
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.site-brand{
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ===== Link card ===== */
+
+.link-card{
+  margin: 1.6em 0;
+}
+
+.link-card a{
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.link-card a:hover{
+  background: rgba(0,0,0,0.02);
+}
+
+[data-theme="dark"] .link-card a:hover{
+  background: rgba(255,255,255,0.06);
+}
+
+.link-card-title{
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.link-card-desc{
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.link-card-url{
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ===== Badge ===== */
+
+.badge{
+  display: inline-block;
+  padding: 0.08rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.02);
+  color: var(--muted);
+}
+
+[data-theme="dark"] .badge{
+  background: rgba(255,255,255,0.08);
+}
+
+.badge-diary{ color: #4b5563; }
+.badge-note{ color: #92400e; }
+.badge-tech{ color: #0369a1; }
+.badge-memo{ color: #92400e; }
+
+/* ===== Theme toggle ===== */
+
+.theme-toggle{
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.theme-toggle:hover{
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce){
+  .skip-link,
+  .card,
+  .card:hover{
+    transition: none !important;
+  }
+}

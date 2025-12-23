@@ -1,0 +1,25 @@
+:root{
+  /* Base colors (light) */
+  --bg: #fcfcfc; /* ← 純白から少し落として眩しさ軽減 */
+  --text: #111111;
+  --text-soft: #333333;
+  --muted: #666666;
+  --border: rgba(0,0,0,0.08);
+
+  --code-bg: #f6f8fa;
+  --inline-code-bg: #f0f0f0;
+
+  /* Optional accents (keep subtle) */
+  --link-underline: rgba(0,0,0,0.35);
+}
+
+[data-theme="dark"]{
+  --bg: #0f0f0f;
+  --text: #eaeaea;
+  --text-soft: #cccccc;
+  --muted: #aaaaaa;
+  --border: rgba(255,255,255,0.12);
+
+  --code-bg: #1e1e1e;
+  --inline-code-bg: rgba(255,255,255,0.12);
+}

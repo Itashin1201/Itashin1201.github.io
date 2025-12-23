@@ -1,0 +1,4 @@
+/* Global stylesheet entry point.
+   BaseLayout.astro imports this file.
+   Feel free to rename to index.css later if you prefer. */
+@import "./index.css";

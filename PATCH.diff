@@ -1,0 +1,1452 @@
+Only in /mnt/data/work/final/site: .editorconfig
+Only in /mnt/data/work/final/site: README.md
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/astro.config.mjs /mnt/data/work/final/site/astro.config.mjs
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/astro.config.mjs	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/astro.config.mjs	2025-12-23 05:24:59.916419094 +0000
+@@ -3,4 +3,10 @@
+ export default defineConfig({
+   site: "https://itashin1201.github.io",
+   base: "/",
++  // GitHub Pages での静的ホスティング前提。URL末尾にスラッシュを付けて
++  // /foo/ -> /foo/index.html 形式で配信できるようにする。
++  trailingSlash: "always",
++  build: {
++    format: "directory",
++  },
+ });
+Only in /mnt/data/work/final/site/public: 404.html
+Only in /mnt/data/work/final/site/public: og.png
+Only in /mnt/data/work/final/site/public: robots.txt
+Only in /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src: assets
+Only in /mnt/data/work/final/site/src/components: SiteFooter.astro
+Only in /mnt/data/work/final/site/src/components: SiteHeader.astro
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/components/ThemeToggle.astro /mnt/data/work/final/site/src/components/ThemeToggle.astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/components/ThemeToggle.astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/components/ThemeToggle.astro	2025-12-23 05:15:08.949489004 +0000
+@@ -0,0 +1,10 @@
++<button
++  id="theme-toggle"
++  class="theme-toggle"
++  type="button"
++  aria-label="テーマを切り替える"
++  aria-pressed="false"
++  title="テーマ切替"
++>
++  <span aria-hidden="true">☾</span>
++</button>
+Only in /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/components: Welcome.astro
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/layouts/BaseLayout.astro /mnt/data/work/final/site/src/layouts/BaseLayout.astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/layouts/BaseLayout.astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/layouts/BaseLayout.astro	2025-12-23 05:24:00.417021632 +0000
+@@ -1,41 +1,72 @@
+ ---
+ import "../styles/site.css";
+-
+-const { frontmatter = {} } = Astro.props;
++import SiteHeader from "../components/SiteHeader.astro";
++import SiteFooter from "../components/SiteFooter.astro";
++import { SITE_NAME, SITE_DESCRIPTION, formatDate, toISO } from "../lib/blog.js";
+ 
+ const {
+-  title = "愛と幽相",
+-  description = "断片を書き留める場所。",
+-  showDate = false,
+-  date: rawDate,
+-  ogImage, // optional: "/og.png" など
+-} = frontmatter;
+-
+-// YYYY-MM-DD の場合は、そのまま表示（UTC変換ズレ防止）
+-const isDateOnly =
+-  typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate);
+-
+-const dateObj = rawDate ? new Date(rawDate) : null;
++  frontmatter = {},
++  title: titleProp,
++  description: descriptionProp,
++  ogImage: ogImageProp,
++  showDate: showDateProp,
++  date: dateProp,
++} = Astro.props;
++
++const siteName = SITE_NAME;
++
++const rawTitle = titleProp ?? frontmatter.title ?? siteName;
++const title = rawTitle === siteName ? siteName : `${rawTitle} | ${siteName}`;
++
++const description =
++  descriptionProp ??
++  frontmatter.description ??
++  frontmatter.excerpt ??
++  SITE_DESCRIPTION;
+ 
+-const displayDate =
+-  isDateOnly ? rawDate : dateObj && !isNaN(dateObj) ? dateObj.toISOString().slice(0, 10) : null;
++const showDate = Boolean(showDateProp ?? frontmatter.showDate ?? false);
++const rawDate = dateProp ?? frontmatter.date;
+ 
+-const isoDate =
+-  dateObj && !isNaN(dateObj) ? dateObj.toISOString() : null;
++const displayDate = rawDate ? formatDate(rawDate) : null;
++const isoDate = rawDate ? toISO(rawDate) : null;
+ 
+ const site = Astro.site ?? new URL("https://itashin1201.github.io");
+ const pageUrl = new URL(Astro.url.pathname, site).toString();
+ const ogType = showDate ? "article" : "website";
+ 
+ const base = import.meta.env.BASE_URL;
++
+ const faviconPng = `${base}favicon.png`;
+ const faviconSvg = `${base}favicon.svg`;
+ 
+-// OG画像（指定がなければ出さない：URLを作る）
+-const ogImageUrl =
+-  typeof ogImage === "string" && ogImage.length > 0
+-    ? new URL(ogImage.replace(/^\//, ""), site).toString()
+-    : null;
++const ogImagePath = String(ogImageProp ?? frontmatter.ogImage ?? "/og.png");
++const ogImageUrl = ogImagePath
++  ? new URL(ogImagePath.replace(/^\//, ""), site).toString()
++  : null;
++
++const jsonLd = showDate
++  ? {
++      "@context": "https://schema.org",
++      "@type": "BlogPosting",
++      headline: rawTitle,
++      description,
++      url: pageUrl,
++      mainEntityOfPage: pageUrl,
++      datePublished: isoDate ?? undefined,
++      inLanguage: "ja-JP",
++      publisher: {
++        "@type": "Organization",
++        name: siteName,
++      },
++    }
++  : {
++      "@context": "https://schema.org",
++      "@type": "WebPage",
++      name: rawTitle,
++      description,
++      url: pageUrl,
++      inLanguage: "ja-JP",
++    };
+ ---
+ 
+ <!doctype html>
+@@ -43,40 +74,42 @@
+   <head>
+     <meta charset="utf-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
++    <meta name="generator" content={Astro.generator} />
+ 
+     <title>{title}</title>
+     <meta name="description" content={description} />
+ 
+     <link rel="canonical" href={pageUrl} />
++    <link rel="alternate" type="application/rss+xml" title={siteName} href={`${base}rss.xml`} />
+ 
+     <meta property="og:title" content={title} />
+     <meta property="og:description" content={description} />
+     <meta property="og:type" content={ogType} />
+     <meta property="og:url" content={pageUrl} />
+-    <meta property="og:site_name" content="愛と幽相" />
++    <meta property="og:site_name" content={siteName} />
+     <meta property="og:locale" content="ja_JP" />
+     {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+ 
+-    {showDate && isoDate && (
+-      <>
+-        <meta property="article:published_time" content={isoDate} />
+-      </>
+-    )}
++    {showDate && isoDate && <meta property="article:published_time" content={isoDate} />}
+ 
+-    <meta name="twitter:card" content={ogImageUrl ? "summary_large_image" : "summary"} />
++    <meta name="twitter:card" content="summary_large_image" />
+     <meta name="twitter:title" content={title} />
+     <meta name="twitter:description" content={description} />
+     {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
+ 
+     <meta name="color-scheme" content="light dark" />
++    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfc" />
++    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+ 
+     <link rel="icon" type="image/svg+xml" href={faviconSvg} />
+     <link rel="icon" href={faviconPng} />
+ 
++    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
++
++    <!-- 初期テーマの適用（FOUC対策） -->
+     <script>
+       (() => {
+         const key = "theme";
+-
+         const getStored = () => {
+           try {
+             return localStorage.getItem(key);
+@@ -98,46 +131,56 @@
+ 
+     <noscript>
+       <style>
+-        #theme-toggle { display: none; }
++        #theme-toggle {
++          display: none;
++        }
+       </style>
+     </noscript>
+   </head>
+ 
+   <body>
+-    <!-- Theme toggle button -->
+-    <button id="theme-toggle" type="button" aria-label="Toggle theme" aria-pressed="false">
+-      theme
+-    </button>
++    <a class="skip-link" href="#main">本文へスキップ</a>
++
++    <SiteHeader currentPath={Astro.url.pathname} />
+ 
+-    <main class="container">
++    <main id="main" class="container">
+       {showDate && (
+         <>
+           <header class="post-header">
+             <div>
+-              <div class="post-site">愛と幽相</div>
+-              <h1 class="post-title">{title}</h1>
++              <div class="post-site">{siteName}</div>
++              <h1 class="post-title">{rawTitle}</h1>
+             </div>
+ 
+             {displayDate && (
+-              <time class="post-date" datetime={isoDate}>
++              <time class="post-date" datetime={isoDate ?? undefined}>
+                 {displayDate}
+               </time>
+             )}
+           </header>
+ 
+-          <div class="back">
++          <nav class="back" aria-label="パンくず">
+             <a href={`${base}blog/`}>← Blog</a>
+-            <span> / </span>
++            <span class="sep" aria-hidden="true"> / </span>
+             <a href={base}>Home</a>
+-          </div>
++          </nav>
+         </>
+       )}
+ 
+-      <article>
+-        <slot />
+-      </article>
++      {showDate ? (
++        <article>
++          <slot />
++        </article>
++      ) : (
++        <div class="page">
++          <slot />
++        </div>
++      )}
+     </main>
+ 
++    <SiteFooter />
++
++    <!-- Theme toggle -->
+     <script>
+       (() => {
+         const key = "theme";
+@@ -174,16 +217,23 @@
+           document.documentElement.dataset.theme = theme;
+           document.documentElement.style.colorScheme = theme;
+ 
+-          const next = theme === "dark" ? "light" : "dark";
+-          btn.textContent = next;
+-          btn.setAttribute("aria-label", `Switch to ${next} mode`);
+-          btn.setAttribute("aria-pressed", String(theme === "dark"));
++          const isDark = theme === "dark";
++          btn.setAttribute("aria-pressed", String(isDark));
++          btn.setAttribute(
++            "aria-label",
++            isDark ? "ライトテーマに切り替える" : "ダークテーマに切り替える"
++          );
++          btn.setAttribute("title", isDark ? "ライトテーマ" : "ダークテーマ");
++          btn.innerHTML = isDark
++            ? '<span aria-hidden="true">☀︎</span>'
++            : '<span aria-hidden="true">☾</span>';
+         };
+ 
+         apply(getStored() ?? getPreferred());
+ 
+         btn.addEventListener("click", () => {
+-          const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
++          const current =
++            document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+           const next = current === "dark" ? "light" : "dark";
+           setStored(next);
+           apply(next);
+Only in /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/layouts: Layout.astro
+Only in /mnt/data/work/final/site/src: lib
+Only in /mnt/data/work/final/site/src/pages: 404.astro
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-21.md /mnt/data/work/final/site/src/pages/blog/2025-12-21.md
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-21.md	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/2025-12-21.md	2025-12-23 05:20:05.427596000 +0000
+@@ -1,6 +1,7 @@
+ ---
+ layout: ../../layouts/BaseLayout.astro
+ title: サイトとブログを作ってみた
++description: はてなブログから離れ、GitHub Pagesで個人サイトとブログを作ってみた話。
+ date: 2025-12-21
+ category: diary
+ showDate: true
+@@ -31,7 +32,7 @@
+ 
+ 外部URLテスト
+ <div class="link-card">
+-  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener">
++  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener noreferrer">
+     <div class="link-card-title">
+       エヴァのホームページ
+     </div>
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-22.md /mnt/data/work/final/site/src/pages/blog/2025-12-22.md
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-22.md	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/2025-12-22.md	2025-12-23 05:20:05.428066352 +0000
+@@ -1,6 +1,7 @@
+ ---
+ layout: ../../layouts/BaseLayout.astro
+ title: サイトとブログを作ってみた2
++description: 装飾やコード、リンクカードなど表示のテストをしながら触ったメモ。
+ date: 2025-12-22
+ category: note
+ showDate: true
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-22sono2.md /mnt/data/work/final/site/src/pages/blog/2025-12-22sono2.md
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-22sono2.md	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/2025-12-22sono2.md	2025-12-23 05:20:05.428295087 +0000
+@@ -1,6 +1,7 @@
+ ---
+ layout: ../../layouts/BaseLayout.astro
+ title: サイトとブログを作ってみた2
++description: サイト運用の気持ち、カメラ制作や買い物など近況をつらつら書いたメモ。
+ date: 2025-12-22
+ category: diary
+ showDate: true
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-23.md /mnt/data/work/final/site/src/pages/blog/2025-12-23.md
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/2025-12-23.md	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/2025-12-23.md	2025-12-23 05:20:05.428537008 +0000
+@@ -1,6 +1,7 @@
+ ---
+ layout: ../../layouts/BaseLayout.astro
+ title: 体操ニッポン GALA　ーOver The Borderーを見た
++description: 2025 体操ニッポン GALA「Over The Border」を観た感想。
+ date: 2025-12-23
+ category: diary
+ showDate: true
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/category/[category].astro /mnt/data/work/final/site/src/pages/blog/category/[category].astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/category/[category].astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/category/[category].astro	2025-12-23 05:17:09.567079658 +0000
+@@ -1,163 +1,92 @@
+ ---
+ import BaseLayout from "../../../layouts/BaseLayout.astro";
++import {
++  getCategories,
++  getMonths,
++  makeExcerpt,
++  normalizeCategory,
++  slugifyClass,
++  sortPostsDesc,
++  formatDate,
++} from "../../../lib/blog.js";
+ 
+-/**
+- * 日付フォーマット（YYYY-MM-DD）
+- */
+-const formatDate = (d) =>
+-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
+-
+-/**
+- * ===== 静的パス生成 =====
+- * blog/*.md の category から一覧を作る
+- */
+ export async function getStaticPaths() {
+   const posts = await Astro.glob("../*.md");
++  const categories = getCategories(posts);
+ 
+-  const categories = [
+-    ...new Set(
+-      posts
+-        .map((p) => p.frontmatter.category)
+-        .filter(Boolean)
+-        .flatMap((c) => (Array.isArray(c) ? c : [c]))
+-        .map((c) => String(c))
+-    ),
+-  ];
+-
+-  return categories.map((category) => ({
+-    params: { category },
++  return categories.map((c) => ({
++    params: { category: encodeURIComponent(c) },
+   }));
+ }
+ 
+-// ===== パラメータ取得 =====
+-const { category } = Astro.params;
+-
+-// ===== 記事取得 =====
+-const posts = await Astro.glob("../*.md");
++const base = import.meta.env.BASE_URL;
++const posts = sortPostsDesc(await Astro.glob("../*.md"));
++const categories = getCategories(posts);
++const months = getMonths(posts);
+ 
+-/**
+- * ===== 全カテゴリ一覧（ナビ用） =====
+- */
+-const allCategories = [
+-  ...new Set(
+-    posts
+-      .map((p) => p.frontmatter.category)
+-      .filter(Boolean)
+-      .flatMap((c) => (Array.isArray(c) ? c : [c]))
+-      .map((c) => String(c))
+-  ),
+-].sort();
+-
+-/**
+- * ===== category でフィルタ =====
+- */
+-const filteredPosts = posts.filter((p) => {
+-  const cats = Array.isArray(p.frontmatter.category)
+-    ? p.frontmatter.category
+-    : [p.frontmatter.category];
+-
+-  return cats
+-    .filter(Boolean)
+-    .map((c) => String(c))
+-    .includes(String(category));
+-});
+-
+-/**
+- * ===== 抜粋生成（一覧用） =====
+- *
+- * 優先順位:
+- * 1. frontmatter.excerpt
+- * 2. lead を除外した本文1行目
+- */
+-const makeExcerpt = async (post) => {
+-  if (typeof post.frontmatter?.excerpt === "string") {
+-    return post.frontmatter.excerpt.trim();
+-  }
+-
+-  if (typeof post.rawContent !== "function") return "";
+-
+-  const raw = await post.rawContent();
+-  if (!raw) return "";
+-
+-  // frontmatter 除去
+-  const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+-
+-  // lead ブロック除去
+-  const withoutLead = body.replace(
+-    /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
+-    ""
+-  );
+-
+-  const lines = withoutLead
+-    .split(/\r?\n/)
+-    .map((l) => l.trim())
+-    .filter(Boolean)
+-    .filter((l) => !l.startsWith("#"))
+-    .filter((l) => !l.includes('class="back"'));
+-
+-  if (!lines.length) return "";
+-
+-  return lines[0]
+-    .replace(/<[^>]+>/g, "")
+-    .replace(/!\[.*?\]\(.*?\)/g, "")
+-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+-    .replace(/[`*_>#-]/g, "")
+-    .replace(/\s+/g, " ")
+-    .trim();
+-};
++const category = decodeURIComponent(Astro.params.category ?? "");
++const filtered = posts.filter((p) => normalizeCategory(p.frontmatter?.category).includes(category));
+ ---
+ 
+-<BaseLayout title={`Blog / ${category}`}>
+-  <h1>Blog</h1>
++<BaseLayout title={`カテゴリ: ${category}`} description={`カテゴリ「${category}」の記事一覧`}>
++  <h1>カテゴリ: {category}</h1>
+ 
+- <p class="sub">
+-  <a href={`${import.meta.env.BASE_URL}blog/`}>all</a>
+-  {" / "}
+-  <span class="is-active">{category}</span>
+-</p>
+-
+-
+-  <ul class="card-list">
+-    {await Promise.all(
+-      filteredPosts
+-        .sort((a, b) => {
+-          const da = new Date(a.frontmatter.date ?? Date.now());
+-          const db = new Date(b.frontmatter.date ?? Date.now());
+-          return db - da;
+-        })
+-        .map(async (post) => {
++  <!-- カテゴリナビ -->
++  <p class="sub" aria-label="カテゴリ">
++    <a href={`${base}blog/`}>all</a>
++    {categories.map((c) => (
++      <>
++        <span class="sep" aria-hidden="true"> / </span>
++        <a
++          class={c === category ? "is-active" : ""}
++          href={`${base}blog/category/${encodeURIComponent(c)}/`}
++        >
++          {c}
++        </a>
++      </>
++    ))}
++  </p>
++
++  <!-- 月別ナビ -->
++  <p class="sub" aria-label="月別">
++    月別：
++    {months.map((m, i) => (
++      <>
++        {i > 0 && <span class="sep" aria-hidden="true"> / </span>}
++        <a href={`${base}blog/month/${m}/`}>{m}</a>
++      </>
++    ))}
++  </p>
++
++  {filtered.length === 0 ? (
++    <p class="sub">このカテゴリの記事はまだありません。</p>
++  ) : (
++    <ul class="card-list">
++      {await Promise.all(
++        filtered.map(async (post) => {
+           const excerpt = await makeExcerpt(post);
++          const cats = normalizeCategory(post.frontmatter?.category);
+ 
+           return (
+             <li class="card">
+               <a class="card-link" href={post.url}>
+                 <div class="card-head">
+-                  <p class="card-title">
+-                    {post.frontmatter.title}
+-                  </p>
++                  <p class="card-title">{post.frontmatter.title}</p>
+ 
+                   <p class="card-meta">
+-  {formatDate(post.frontmatter.date)}
+-  <span class={`badge badge-${category}`}>
+-    {String(category)}
+-  </span>
+-</p>
+-
++                    <span class="card-date">{formatDate(post.frontmatter.date)}</span>
++                    {cats.map((cat) => (
++                      <span class={`badge badge-${slugifyClass(cat)}`}>{cat}</span>
++                    ))}
++                  </p>
+                 </div>
+ 
+-                {excerpt && (
+-                  <p class="card-excerpt">{excerpt}</p>
+-                )}
++                {excerpt && <p class="card-excerpt">{excerpt}</p>}
+               </a>
+             </li>
+           );
+         })
+-    )}
+-  </ul>
+-
+-  <p><a href={`${import.meta.env.BASE_URL}blog/`}>← all</a></p>
+-  <p><a href={import.meta.env.BASE_URL}>← Home</a></p>
++      )}
++    </ul>
++  )}
+ </BaseLayout>
+-
+-
+-
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/index.astro /mnt/data/work/final/site/src/pages/blog/index.astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/index.astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/index.astro	2025-12-23 05:16:39.679804514 +0000
+@@ -1,140 +1,74 @@
+ ---
+ import BaseLayout from "../../layouts/BaseLayout.astro";
++import {
++  getCategories,
++  getMonths,
++  makeExcerpt,
++  normalizeCategory,
++  slugifyClass,
++  sortPostsDesc,
++  formatDate,
++} from "../../lib/blog.js";
+ 
+ const posts = await Astro.glob("./*.md");
++const sorted = sortPostsDesc(posts);
+ 
+-const formatDate = (d) =>
+-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
+-
+-// カテゴリ一覧（重複排除・文字列化）
+-const categories = [
+-  ...new Set(
+-    posts
+-      .map((p) => p.frontmatter.category)
+-      .filter(Boolean)
+-      .flatMap((c) => (Array.isArray(c) ? c : [c]))
+-      .map((c) => String(c))
+-  ),
+-].sort((a, b) => a.localeCompare(b, "ja"));
+-
+-// 月一覧（YYYY-MM）
+-const months = [
+-  ...new Set(
+-    posts.map((p) =>
+-      formatDate(p.frontmatter.date).slice(0, 7)
+-    )
+-  ),
+-].sort().reverse();
+-
+-// 抜粋生成（excerpt がなければ本文1行目）
+-const makeExcerpt = async (post) => {
+-  if (post.frontmatter?.excerpt) return String(post.frontmatter.excerpt);
+-
+-  const raw =
+-    typeof post.rawContent === "function" ? await post.rawContent() : "";
+-  if (!raw) return "";
+-
+-  const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+-
+-  const lines = body
+-    .split(/\r?\n/)
+-    .map((l) => l.trim())
+-    .filter(Boolean)
+-    .filter((l) => !l.startsWith("#"))
+-    .filter((l) => !l.includes('class="back"'));
+-
+-  for (const line of lines) {
+-    const text = line
+-      .replace(/<[^>]+>/g, "")                 // HTML除去
+-      .replace(/!\[.*?\]\(.*?\)/g, "")         // 画像除去
+-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // リンク
+-      .replace(/[`*_>#-]/g, "")                // Markdown記号
+-      .trim();
+-
+-    if (text) {
+-      return text;
+-    }
+-  }
+-
+-  return "";
+-};
++const categories = getCategories(sorted);
++const months = getMonths(sorted);
++const base = import.meta.env.BASE_URL;
+ ---
+ 
+-<BaseLayout title="Blog">
++<BaseLayout title="Blog" description="記事一覧">
+   <h1>Blog</h1>
+ 
+   <!-- カテゴリナビ -->
+-  <p class="sub">
+-    <a href={`${import.meta.env.BASE_URL}blog/`}>all</a>
++  <p class="sub" aria-label="カテゴリ">
++    <a class="is-active" href={`${base}blog/`}>all</a>
+     {categories.map((c) => (
+-      <span>
+-        {" / "}
+-        <a
+-          href={`${import.meta.env.BASE_URL}blog/category/${encodeURIComponent(
+-            c
+-          )}/`}
+-        >
+-          {c}
+-        </a>
+-      </span>
++      <>
++        <span class="sep" aria-hidden="true"> / </span>
++        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
++      </>
+     ))}
+   </p>
+ 
+   <!-- 月別ナビ -->
+-  <p class="sub">
++  <p class="sub" aria-label="月別">
+     月別：
+     {months.map((m, i) => (
+-      <span>
+-        {i > 0 && " / "}
+-        <a href={`${import.meta.env.BASE_URL}blog/month/${m}/`}>
+-          {m}
+-        </a>
+-      </span>
++      <>
++        {i > 0 && <span class="sep" aria-hidden="true"> / </span>}
++        <a href={`${base}blog/month/${m}/`}>{m}</a>
++      </>
+     ))}
+   </p>
+ 
+   <!-- 記事一覧 -->
+   <ul class="card-list">
+     {await Promise.all(
+-      posts
+-        .sort((a, b) => {
+-          const da = new Date(a.frontmatter.date ?? Date.now());
+-          const db = new Date(b.frontmatter.date ?? Date.now());
+-          return db - da;
+-        })
+-        .map(async (post) => {
+-          const excerpt = await makeExcerpt(post);
+-
+-          return (
+-            <li class="card">
+-              <a class="card-link" href={post.url}>
+-                <div class="card-head">
+-                  <p class="card-title">{post.frontmatter.title}</p>
+-
+-                  <p class="card-meta">
+-                    {formatDate(post.frontmatter.date)}
+-                    {post.frontmatter.category && (
+-                      <span
+-                        class={`badge badge-${String(
+-                          post.frontmatter.category
+-                        )}`}
+-                      >
+-                        {" "}
+-                        {String(post.frontmatter.category)}
+-                      </span>
+-                    )}
+-                  </p>
+-                </div>
+-
+-                {excerpt && <p class="card-excerpt">{excerpt}</p>}
+-              </a>
+-            </li>
+-          );
+-        })
++      sorted.map(async (post) => {
++        const excerpt = await makeExcerpt(post);
++        const cats = normalizeCategory(post.frontmatter?.category);
++
++        return (
++          <li class="card">
++            <a class="card-link" href={post.url}>
++              <div class="card-head">
++                <p class="card-title">{post.frontmatter.title}</p>
++
++                <p class="card-meta">
++                  <span class="card-date">{formatDate(post.frontmatter.date)}</span>
++                  {cats.map((cat) => (
++                    <span class={`badge badge-${slugifyClass(cat)}`}>{cat}</span>
++                  ))}
++                </p>
++              </div>
++
++              {excerpt && <p class="card-excerpt">{excerpt}</p>}
++            </a>
++          </li>
++        );
++      })
+     )}
+   </ul>
+-
+-  <p>
+-    <a href={import.meta.env.BASE_URL}>← Home</a>
+-  </p>
+ </BaseLayout>
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/month/[month].astro /mnt/data/work/final/site/src/pages/blog/month/[month].astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/month/[month].astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/month/[month].astro	2025-12-23 05:17:27.106530954 +0000
+@@ -1,165 +1,89 @@
+ ---
+ import BaseLayout from "../../../layouts/BaseLayout.astro";
++import {
++  getCategories,
++  getMonths,
++  makeExcerpt,
++  normalizeCategory,
++  slugifyClass,
++  sortPostsDesc,
++  formatDate,
++} from "../../../lib/blog.js";
+ 
+-/**
+- * 日付フォーマット（YYYY-MM-DD）
+- */
+-const formatDate = (d) =>
+-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
+-
+-/**
+- * ===== 静的パス生成 =====
+- * blog/*.md の date から YYYY-MM を抽出
+- */
+ export async function getStaticPaths() {
+-  const posts = await Astro.glob("../../blog/*.md");
++  const posts = await Astro.glob("../*.md");
++  const months = getMonths(posts);
+ 
+-  const months = [
+-    ...new Set(
+-      posts.map((p) =>
+-        new Date(p.frontmatter.date ?? Date.now())
+-          .toISOString()
+-          .slice(0, 7)
+-      )
+-    ),
+-  ];
+-
+-  return months.map((month) => ({
+-    params: { month },
++  return months.map((m) => ({
++    params: { month: m },
+   }));
+ }
+ 
+-// ===== パラメータ取得 =====
+-const { month } = Astro.params;
+-
+-// ===== 記事取得 =====
+-const posts = await Astro.glob("../../blog/*.md");
++const base = import.meta.env.BASE_URL;
++const posts = sortPostsDesc(await Astro.glob("../*.md"));
++const categories = getCategories(posts);
++const months = getMonths(posts);
+ 
+-/**
+- * ===== 月でフィルタ =====
+- */
+-const filteredPosts = posts.filter((p) =>
+-  formatDate(p.frontmatter.date).startsWith(month)
+-);
+-
+-/**
+- * ===== 日付順にソート =====
+- */
+-filteredPosts.sort((a, b) => {
+-  const da = new Date(a.frontmatter.date ?? 0);
+-  const db = new Date(b.frontmatter.date ?? 0);
+-  return db - da;
+-});
+-
+-/**
+- * ===== 抜粋生成 =====
+- *
+- * 優先順位:
+- * 1. frontmatter.excerpt
+- * 2. rawContent() 内の <p class="lead">...</p>
+- * 3. それ以外は表示しない
+- */
+-/**
+- * 抜粋生成（一覧用）
+- *
+- * 優先順位:
+- * 1. frontmatter.excerpt
+- * 2. lead を飛ばした本文1行目
+- */
+-const makeExcerpt = async (post) => {
+-  if (typeof post.frontmatter?.excerpt === "string") {
+-    return post.frontmatter.excerpt.trim();
+-  }
+-
+-  if (typeof post.rawContent !== "function") return "";
+-
+-  const raw = await post.rawContent();
+-  if (!raw) return "";
+-
+-  // frontmatter 除去
+-  const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+-
+-  // lead ブロックを丸ごと除去
+-  const withoutLead = body.replace(
+-    /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
+-    ""
+-  );
+-
+-  const lines = withoutLead
+-    .split(/\r?\n/)
+-    .map((l) => l.trim())
+-    .filter(Boolean)
+-    .filter((l) => !l.startsWith("#"))
+-    .filter((l) => !l.includes('class="back"'));
+-
+-  if (!lines.length) return "";
+-
+-  return lines[0]
+-    .replace(/<[^>]+>/g, "")
+-    .replace(/!\[.*?\]\(.*?\)/g, "")
+-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+-    .replace(/[`*_>#-]/g, "")
+-    .replace(/\s+/g, " ")
+-    .trim();
+-};
++const month = String(Astro.params.month ?? "");
++const filtered = posts.filter((p) => formatDate(p.frontmatter?.date).slice(0, 7) === month);
+ ---
+ 
+-<BaseLayout title={`Blog / ${month}`}>
+-  <h1>Blog</h1>
++<BaseLayout title={`月別: ${month}`} description={`${month} の記事一覧`}>
++  <h1>月別: {month}</h1>
+ 
+- <p class="sub">
+-  <a href={`${import.meta.env.BASE_URL}blog/`}>all</a>
+-  {" / "}
+-  <span class="is-active">{month}</span>
+-</p>
+-
+-
+-  <ul class="card-list">
+-    {await Promise.all(
+-      filteredPosts.map(async (post) => {
+-        const excerpt = await makeExcerpt(post);
+-
+-        return (
+-          <li class="card">
+-            <a class="card-link" href={post.url}>
+-              <div class="card-head">
+-                <p class="card-title">
+-                  {post.frontmatter.title}
+-                </p>
+-
+-                <p class="card-meta">
+-  <span
+-    class={`badge ${
+-      formatDate(post.frontmatter.date).startsWith(month)
+-        ? "badge-month is-active"
+-        : "badge-month"
+-    }`}
+-  >
+-    {month}
+-  </span>
+-
+-  <span class={`badge badge-${post.frontmatter.category}`}>
+-    {String(post.frontmatter.category)}
+-  </span>
+-</p>
+-
+-              </div>
+-
+-              {excerpt && (
+-                <p class="card-excerpt">{excerpt}</p>
+-              )}
+-            </a>
+-          </li>
+-        );
+-      })
+-    )}
+-  </ul>
+-
+-  <p><a href={`${import.meta.env.BASE_URL}blog/`}>← all</a></p>
+-  <p><a href={import.meta.env.BASE_URL}>← Home</a></p>
++  <!-- カテゴリナビ -->
++  <p class="sub" aria-label="カテゴリ">
++    <a href={`${base}blog/`}>all</a>
++    {categories.map((c) => (
++      <>
++        <span class="sep" aria-hidden="true"> / </span>
++        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
++      </>
++    ))}
++  </p>
++
++  <!-- 月別ナビ -->
++  <p class="sub" aria-label="月別">
++    月別：
++    {months.map((m, i) => (
++      <>
++        {i > 0 && <span class="sep" aria-hidden="true"> / </span>}
++        <a class={m === month ? "is-active" : ""} href={`${base}blog/month/${m}/`}>
++          {m}
++        </a>
++      </>
++    ))}
++  </p>
++
++  {filtered.length === 0 ? (
++    <p class="sub">この月の記事はまだありません。</p>
++  ) : (
++    <ul class="card-list">
++      {await Promise.all(
++        filtered.map(async (post) => {
++          const excerpt = await makeExcerpt(post);
++          const cats = normalizeCategory(post.frontmatter?.category);
++
++          return (
++            <li class="card">
++              <a class="card-link" href={post.url}>
++                <div class="card-head">
++                  <p class="card-title">{post.frontmatter.title}</p>
++
++                  <p class="card-meta">
++                    <span class="card-date">{formatDate(post.frontmatter.date)}</span>
++                    {cats.map((cat) => (
++                      <span class={`badge badge-${slugifyClass(cat)}`}>{cat}</span>
++                    ))}
++                  </p>
++                </div>
++
++                {excerpt && <p class="card-excerpt">{excerpt}</p>}
++              </a>
++            </li>
++          );
++        })
++      )}
++    </ul>
++  )}
+ </BaseLayout>
+-
+-
+-
+-
+-
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/test.md /mnt/data/work/final/site/src/pages/blog/test.md
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/blog/test.md	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/blog/test.md	2025-12-23 05:20:05.428775789 +0000
+@@ -1,6 +1,7 @@
+ ---
+ layout: ../../layouts/BaseLayout.astro
+ title: サイトとブログを作ってみた
++description: はてなブログから離れて自分のサイトとブログを作った所感。
+ date: 2025-12-21
+ category: diary
+ showDate: true
+@@ -48,7 +49,7 @@
+ ## 外部リンクカードのテスト
+ 
+ <div class="link-card">
+-  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener">
++  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener noreferrer">
+     <div class="link-card-title">
+       エヴァンゲリオン公式サイト
+     </div>
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/index.astro /mnt/data/work/final/site/src/pages/index.astro
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/pages/index.astro	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/pages/index.astro	2025-12-23 05:16:27.801005840 +0000
+@@ -1,19 +1,14 @@
+ ---
+ import BaseLayout from "../layouts/BaseLayout.astro";
+-const year = new Date().getFullYear();
+-const base = import.meta.env.BASE_URL;
+ ---
+ 
+-<BaseLayout title="愛と幽相">
++<BaseLayout title="愛と幽相" description="断片を書き留める場所。">
+   <h1>愛と幽相</h1>
+   <p class="sub">夜が普通に明けた日に、ぼんやりとしてた。もっとぼんやりしてればいいのに、と思った。</p>
+ 
+   <p>今日はロックンロールのあつい日でした。明日も。きっとずっと。</p>
+ 
+-  <nav>
+-    <a href={`${base}blog/`}>Blog</a>
+-    <a href="https://github.com/itashin1201" target="_blank" rel="noopener noreferrer">GitHub</a>
+-  </nav>
+-
+-  <footer class="footer">© {year} itashin</footer>
++  <p class="sub">
++    <a href={`${import.meta.env.BASE_URL}blog/`}>Blog を読む →</a>
++  </p>
+ </BaseLayout>
+Only in /mnt/data/work/final/site/src/pages: rss.xml.js
+Only in /mnt/data/work/final/site/src/pages: sitemap.xml.js
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/article.css /mnt/data/work/final/site/src/styles/article.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/article.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/article.css	2025-12-23 05:22:24.906453249 +0000
+@@ -18,10 +18,12 @@
+ }
+ 
+ article img{
+-  max-width: 90%;
++  max-width: 100%;
+   height: auto;
+   display: block;
+   margin: 22px auto;
++  border-radius: 12px;
++  border: 1px solid var(--border);
+ }
+ 
+ /* ===== Post header ===== */
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/base.css /mnt/data/work/final/site/src/styles/base.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/base.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/base.css	2025-12-23 05:20:58.678810234 +0000
+@@ -1,8 +1,38 @@
+-html, body{
++:root{
++  color-scheme: light dark;
++}
++
++*,
++*::before,
++*::after{
++  box-sizing: border-box;
++}
++
++html{
++  -webkit-text-size-adjust: 100%;
++  text-rendering: optimizeLegibility;
++  scroll-behavior: smooth;
++}
++
++body{
+   margin: 0;
+   padding: 0;
++  min-height: 100svh;
+   background: var(--bg);
+   color: var(--text);
+   font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+   line-height: 1.9;
+ }
++
++::selection{
++  background: rgba(11,87,208,0.18);
++}
++
++:focus-visible{
++  outline: 2px solid rgba(11,87,208,0.55);
++  outline-offset: 3px;
++}
++
++[data-theme="dark"] :focus-visible{
++  outline-color: rgba(140,190,255,0.55);
++}
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/cards.css /mnt/data/work/final/site/src/styles/cards.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/cards.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/cards.css	2025-12-23 05:22:09.809037557 +0000
+@@ -36,10 +36,6 @@
+   background: rgba(255,255,255,0.06);
+ }
+ 
+-.card a{
+-  text-decoration: none;
+-}
+-
+ .card-link{
+   display: block;
+   color: inherit;
+@@ -54,7 +50,7 @@
+ .card-head{
+   display: flex;
+   justify-content: space-between;
+-  align-items: center;
++  align-items: flex-start;
+   gap: 12px;
+ }
+ 
+@@ -69,8 +65,18 @@
+   margin: 0;
+   font-size: 0.82rem;
+   color: var(--muted);
+-  white-space: nowrap;
+   letter-spacing: 0.02em;
++
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  justify-content: flex-end;
++  gap: 6px;
++  text-align: right;
++}
++
++.card-date{
++  white-space: nowrap;
+ }
+ 
+ .card-excerpt{
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/components.css /mnt/data/work/final/site/src/styles/components.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/components.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/components.css	2025-12-23 05:21:49.724426985 +0000
+@@ -1,3 +1,61 @@
++/* ===== Utility ===== */
++
++.sep{
++  opacity: 0.6;
++}
++
++.skip-link{
++  position: absolute;
++  left: 12px;
++  top: 10px;
++  padding: 8px 10px;
++  border-radius: 10px;
++  border: 1px solid var(--border);
++  background: var(--bg);
++  color: var(--text);
++  text-decoration: none;
++  transform: translateY(-200%);
++  transition: transform 120ms ease;
++  z-index: 99999;
++}
++
++.skip-link:focus{
++  transform: translateY(0);
++}
++
++/* ===== Header ===== */
++
++.site-header{
++  position: sticky;
++  top: 0;
++  z-index: 1000;
++  border-bottom: 1px solid var(--border);
++  background: rgba(252,252,252,0.78);
++  backdrop-filter: blur(12px);
++}
++
++[data-theme="dark"] .site-header{
++  background: rgba(15,15,15,0.78);
++}
++
++.site-header-inner{
++  max-width: 720px;
++  margin: 0 auto;
++  padding: 12px 20px;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 12px;
++}
++
++.site-brand{
++  font-weight: 700;
++  letter-spacing: 0.06em;
++  text-decoration: none;
++  color: var(--text);
++  white-space: nowrap;
++}
++
+ /* ===== Link card ===== */
+ 
+ .link-card{
+@@ -41,8 +99,7 @@
+ 
+ .badge{
+   display: inline-block;
+-  margin-left: 0.4rem;
+-  padding: 0.1rem 0.55rem;
++  padding: 0.08rem 0.55rem;
+   border-radius: 999px;
+   font-size: 0.72rem;
+   line-height: 1.4;
+@@ -55,52 +112,34 @@
+   background: rgba(255,255,255,0.08);
+ }
+ 
+-.badge-diary{
+-  color: #4b5563;
+-}
+-
+-.badge-tech{
+-  color: #0369a1;
+-}
+-
+-.badge-memo{
+-  color: #92400e;
+-}
++.badge-diary{ color: #4b5563; }
++.badge-note{ color: #92400e; }
++.badge-tech{ color: #0369a1; }
++.badge-memo{ color: #92400e; }
+ 
+ /* ===== Theme toggle ===== */
+ 
+-#theme-toggle {
+-  position: fixed;
+-  top: 14px;
+-  right: 14px;
+-  z-index: 9999;
+-
+-  background: none;
+-  border: none;
+-  padding: 4px 6px;
+-
+-  font-size: 0.85rem;
+-  font-family: inherit;
+-  letter-spacing: 0.04em;
+-  text-transform: lowercase;
+-
++.theme-toggle{
++  border: 1px solid var(--border);
++  background: transparent;
++  border-radius: 999px;
++  width: 34px;
++  height: 34px;
++  display: inline-grid;
++  place-items: center;
+   color: var(--muted);
+   cursor: pointer;
++  flex: 0 0 auto;
+ }
+ 
+-#theme-toggle:hover {
++.theme-toggle:hover{
+   color: var(--text);
+ }
+ 
+-/* ===== Sub active (breadcrumb) ===== */
+-
+-.sub .is-active{
+-  background: rgba(0,0,0,0.06);
+-  border-radius: 6px;
+-  padding: 0.1em 0.45em;
+-  font-weight: 600;
+-}
+-
+-[data-theme="dark"] .sub .is-active{
+-  background: rgba(255,255,255,0.12);
++@media (prefers-reduced-motion: reduce){
++  .skip-link,
++  .card,
++  .card:hover{
++    transition: none !important;
++  }
+ }
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/footer.css /mnt/data/work/final/site/src/styles/footer.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/footer.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/footer.css	2025-12-23 05:21:26.888129428 +0000
+@@ -1,5 +1,42 @@
+ /* ===== Footer ===== */
+ 
++.site-footer{
++  border-top: 1px solid var(--border);
++  margin-top: 56px;
++  padding: 24px 0 40px;
++}
++
++.site-footer-inner{
++  max-width: 720px;
++  margin: 0 auto;
++  padding: 0 20px;
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 12px;
++  flex-wrap: wrap;
++}
++
++.site-footer-left{
++  font-size: 0.9rem;
++  color: var(--muted);
++}
++
++.site-footer-right{
++  font-size: 0.9rem;
++  color: var(--muted);
++}
++
++.site-footer-right a{
++  text-decoration: none;
++}
++
++.site-footer-right a:hover{
++  text-decoration: underline;
++  text-underline-offset: 4px;
++}
++
++/* Backwards compatibility */
+ .footer{
+   margin-top: 56px;
+   font-size: 0.9rem;
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/layout.css /mnt/data/work/final/site/src/styles/layout.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/layout.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/layout.css	2025-12-23 05:20:47.659268190 +0000
+@@ -1,9 +1,15 @@
+ /* ===== Layout ===== */
+ 
+-main{
++.container{
+   max-width: 720px;
+   margin-left: auto;
+   margin-right: auto;
+-  padding: 72px 20px;
++  padding: 44px 20px 64px;
+   box-sizing: border-box;
+ }
++
++@media (min-width: 960px){
++  .container{
++    padding-top: 56px;
++  }
++}
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/nav.css /mnt/data/work/final/site/src/styles/nav.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/nav.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/nav.css	2025-12-23 05:20:38.619040100 +0000
+@@ -1,12 +1,32 @@
+ /* ===== Navigation ===== */
+ 
+-nav{
++/* Site header nav */
++.site-nav{
+   display: flex;
+-  gap: 16px;
++  gap: 14px;
+   flex-wrap: wrap;
+-  margin-top: 22px;
++  align-items: center;
+ }
+ 
++.site-nav a{
++  text-decoration: none;
++  color: var(--muted);
++}
++
++.site-nav a:hover{
++  color: var(--text);
++  text-decoration: underline;
++  text-underline-offset: 4px;
++}
++
++.site-nav a.is-active{
++  color: var(--text);
++  font-weight: 600;
++  text-decoration: underline;
++  text-underline-offset: 4px;
++}
++
++/* Small helper text */
+ .sub{
+   color: var(--muted);
+   font-size: 0.85rem;
+diff -ru /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/typography.css /mnt/data/work/final/site/src/styles/typography.css
+--- /mnt/data/work/orig/UPDATED/Itashin1201.github.io-main/src/styles/typography.css	2025-12-23 03:48:22.000000000 +0000
++++ /mnt/data/work/final/site/src/styles/typography.css	2025-12-23 05:21:13.060007943 +0000
+@@ -7,6 +7,16 @@
+   margin: 0 0 14px;
+ }
+ 
++h2{
++  font-size: 1.35rem;
++  margin: 2.2rem 0 0.8rem;
++}
++
++h3{
++  font-size: 1.1rem;
++  margin: 1.8rem 0 0.6rem;
++}
++
+ p{
+   margin: 0 0 18px;
+   color: var(--text-soft);
+@@ -16,4 +26,13 @@
+   color: inherit;
+   text-decoration: underline;
+   text-underline-offset: 4px;
++  text-decoration-thickness: from-font;
++}
++
++a:hover{
++  text-decoration-thickness: 2px;
++}
++
++ul,ol{
++  padding-inline-start: 1.2rem;
+ }

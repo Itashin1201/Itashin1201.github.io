@@ -1,0 +1,33 @@
+/* ===== Blog list ===== */
+
+.list{
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+}
+
+.list li{
+  margin: 0 0 18px;
+}
+
+
+/* ===== Month badge ===== */
+
+.badge-month{
+  background: rgba(0,0,0,0.02);
+  color: var(--muted);
+}
+
+.badge-month.is-active{
+  background: rgba(0,0,0,0.06);
+  color: var(--text);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .badge-month{
+  background: rgba(255,255,255,0.06);
+}
+
+[data-theme="dark"] .badge-month.is-active{
+  background: rgba(255,255,255,0.12);
+}

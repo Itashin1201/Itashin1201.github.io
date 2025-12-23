@@ -1,0 +1,38 @@
+/* ===== Typography ===== */
+
+h1{
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0 0 14px;
+}
+
+h2{
+  font-size: 1.35rem;
+  margin: 2.2rem 0 0.8rem;
+}
+
+h3{
+  font-size: 1.1rem;
+  margin: 1.8rem 0 0.6rem;
+}
+
+p{
+  margin: 0 0 18px;
+  color: var(--text-soft);
+}
+
+a{
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: from-font;
+}
+
+a:hover{
+  text-decoration-thickness: 2px;
+}
+
+ul,ol{
+  padding-inline-start: 1.2rem;
+}
