@@ -1,74 +1,140 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import {
-  getCategories,
-  getMonths,
-  makeExcerpt,
-  normalizeCategory,
-  slugifyClass,
-  sortPostsDesc,
-  formatDate,
-} from "../../lib/blog.js";
 
 const posts = await Astro.glob("./*.md");
-const sorted = sortPostsDesc(posts);
 
-const categories = getCategories(sorted);
-const months = getMonths(sorted);
-const base = import.meta.env.BASE_URL;
+const formatDate = (d) =>
+  new Date(d ?? Date.now()).toISOString().slice(0, 10);
+
+// カテゴリ一覧（重複排除・文字列化）
+const categories = [
+  ...new Set(
+    posts
+      .map((p) => p.frontmatter.category)
+      .filter(Boolean)
+      .flatMap((c) => (Array.isArray(c) ? c : [c]))
+      .map((c) => String(c))
+  ),
+].sort((a, b) => a.localeCompare(b, "ja"));
+
+// 月一覧（YYYY-MM）
+const months = [
+  ...new Set(
+    posts.map((p) =>
+      formatDate(p.frontmatter.date).slice(0, 7)
+    )
+  ),
+].sort().reverse();
+
+// 抜粋生成（excerpt がなければ本文1行目）
+const makeExcerpt = async (post) => {
+  if (post.frontmatter?.excerpt) return String(post.frontmatter.excerpt);
+
+  const raw =
+    typeof post.rawContent === "function" ? await post.rawContent() : "";
+  if (!raw) return "";
+
+  const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+
+  const lines = body
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => !l.startsWith("#"))
+    .filter((l) => !l.includes('class="back"'));
+
+  for (const line of lines) {
+    const text = line
+      .replace(/<[^>]+>/g, "")                 // HTML除去
+      .replace(/!\[.*?\]\(.*?\)/g, "")         // 画像除去
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // リンク
+      .replace(/[`*_>#-]/g, "")                // Markdown記号
+      .trim();
+
+    if (text) {
+      return text;
+    }
+  }
+
+  return "";
+};
 ---
 
-<BaseLayout title="Blog" description="記事一覧">
+<BaseLayout title="Blog">
   <h1>Blog</h1>
 
   <!-- カテゴリナビ -->
-  <p class="sub" aria-label="カテゴリ">
-    <a class="is-active" href={`${base}blog/`}>all</a>
+  <p class="sub">
+    <a href={`${import.meta.env.BASE_URL}blog/`}>all</a>
     {categories.map((c) => (
-      <>
-        <span class="sep" aria-hidden="true"> / </span>
-        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
-      </>
+      <span>
+        {" / "}
+        <a
+          href={`${import.meta.env.BASE_URL}blog/category/${encodeURIComponent(
+            c
+          )}/`}
+        >
+          {c}
+        </a>
+      </span>
     ))}
   </p>
 
   <!-- 月別ナビ -->
-  <p class="sub" aria-label="月別">
+  <p class="sub">
     月別：
     {months.map((m, i) => (
-      <>
-        {i > 0 && <span class="sep" aria-hidden="true"> / </span>}
-        <a href={`${base}blog/month/${m}/`}>{m}</a>
-      </>
+      <span>
+        {i > 0 && " / "}
+        <a href={`${import.meta.env.BASE_URL}blog/month/${m}/`}>
+          {m}
+        </a>
+      </span>
     ))}
   </p>
 
   <!-- 記事一覧 -->
   <ul class="card-list">
     {await Promise.all(
-      sorted.map(async (post) => {
-        const excerpt = await makeExcerpt(post);
-        const cats = normalizeCategory(post.frontmatter?.category);
+      posts
+        .sort((a, b) => {
+          const da = new Date(a.frontmatter.date ?? Date.now());
+          const db = new Date(b.frontmatter.date ?? Date.now());
+          return db - da;
+        })
+        .map(async (post) => {
+          const excerpt = await makeExcerpt(post);
 
-        return (
-          <li class="card">
-            <a class="card-link" href={post.url}>
-              <div class="card-head">
-                <p class="card-title">{post.frontmatter.title}</p>
+          return (
+            <li class="card">
+              <a class="card-link" href={post.url}>
+                <div class="card-head">
+                  <p class="card-title">{post.frontmatter.title}</p>
 
-                <p class="card-meta">
-                  <span class="card-date">{formatDate(post.frontmatter.date)}</span>
-                  {cats.map((cat) => (
-                    <span class={`badge badge-${slugifyClass(cat)}`}>{cat}</span>
-                  ))}
-                </p>
-              </div>
+                  <p class="card-meta">
+                    {formatDate(post.frontmatter.date)}
+                    {post.frontmatter.category && (
+                      <span
+                        class={`badge badge-${String(
+                          post.frontmatter.category
+                        )}`}
+                      >
+                        {" "}
+                        {String(post.frontmatter.category)}
+                      </span>
+                    )}
+                  </p>
+                </div>
 
-              {excerpt && <p class="card-excerpt">{excerpt}</p>}
-            </a>
-          </li>
-        );
-      })
+                {excerpt && <p class="card-excerpt">{excerpt}</p>}
+              </a>
+            </li>
+          );
+        })
     )}
   </ul>
+
+  <p>
+    <a href={import.meta.env.BASE_URL}>← Home</a>
+  </p>
 </BaseLayout>

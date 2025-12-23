@@ -1,89 +1,165 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import {
-  getCategories,
-  getMonths,
-  makeExcerpt,
-  normalizeCategory,
-  slugifyClass,
-  sortPostsDesc,
-  formatDate,
-} from "../../../lib/blog.js";
 
+/**
+ * 日付フォーマット（YYYY-MM-DD）
+ */
+const formatDate = (d) =>
+  new Date(d ?? Date.now()).toISOString().slice(0, 10);
+
+/**
+ * ===== 静的パス生成 =====
+ * blog/*.md の date から YYYY-MM を抽出
+ */
 export async function getStaticPaths() {
-  const posts = await Astro.glob("../*.md");
-  const months = getMonths(posts);
+  const posts = await Astro.glob("../../blog/*.md");
 
-  return months.map((m) => ({
-    params: { month: m },
+  const months = [
+    ...new Set(
+      posts.map((p) =>
+        new Date(p.frontmatter.date ?? Date.now())
+          .toISOString()
+          .slice(0, 7)
+      )
+    ),
+  ];
+
+  return months.map((month) => ({
+    params: { month },
   }));
 }
 
-const base = import.meta.env.BASE_URL;
-const posts = sortPostsDesc(await Astro.glob("../*.md"));
-const categories = getCategories(posts);
-const months = getMonths(posts);
+// ===== パラメータ取得 =====
+const { month } = Astro.params;
 
-const month = String(Astro.params.month ?? "");
-const filtered = posts.filter((p) => formatDate(p.frontmatter?.date).slice(0, 7) === month);
+// ===== 記事取得 =====
+const posts = await Astro.glob("../../blog/*.md");
+
+/**
+ * ===== 月でフィルタ =====
+ */
+const filteredPosts = posts.filter((p) =>
+  formatDate(p.frontmatter.date).startsWith(month)
+);
+
+/**
+ * ===== 日付順にソート =====
+ */
+filteredPosts.sort((a, b) => {
+  const da = new Date(a.frontmatter.date ?? 0);
+  const db = new Date(b.frontmatter.date ?? 0);
+  return db - da;
+});
+
+/**
+ * ===== 抜粋生成 =====
+ *
+ * 優先順位:
+ * 1. frontmatter.excerpt
+ * 2. rawContent() 内の <p class="lead">...</p>
+ * 3. それ以外は表示しない
+ */
+/**
+ * 抜粋生成（一覧用）
+ *
+ * 優先順位:
+ * 1. frontmatter.excerpt
+ * 2. lead を飛ばした本文1行目
+ */
+const makeExcerpt = async (post) => {
+  if (typeof post.frontmatter?.excerpt === "string") {
+    return post.frontmatter.excerpt.trim();
+  }
+
+  if (typeof post.rawContent !== "function") return "";
+
+  const raw = await post.rawContent();
+  if (!raw) return "";
+
+  // frontmatter 除去
+  const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+
+  // lead ブロックを丸ごと除去
+  const withoutLead = body.replace(
+    /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
+    ""
+  );
+
+  const lines = withoutLead
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => !l.startsWith("#"))
+    .filter((l) => !l.includes('class="back"'));
+
+  if (!lines.length) return "";
+
+  return lines[0]
+    .replace(/<[^>]+>/g, "")
+    .replace(/!\[.*?\]\(.*?\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[`*_>#-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
 ---
 
-<BaseLayout title={`月別: ${month}`} description={`${month} の記事一覧`}>
-  <h1>月別: {month}</h1>
+<BaseLayout title={`Blog / ${month}`}>
+  <h1>Blog</h1>
 
-  <!-- カテゴリナビ -->
-  <p class="sub" aria-label="カテゴリ">
-    <a href={`${base}blog/`}>all</a>
-    {categories.map((c) => (
-      <>
-        <span class="sep" aria-hidden="true"> / </span>
-        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
-      </>
-    ))}
-  </p>
+ <p class="sub">
+  <a href="/blog/">all</a>
+  {" / "}
+  <span class="is-active">{month}</span>
+</p>
 
-  <!-- 月別ナビ -->
-  <p class="sub" aria-label="月別">
-    月別：
-    {months.map((m, i) => (
-      <>
-        {i > 0 && <span class="sep" aria-hidden="true"> / </span>}
-        <a class={m === month ? "is-active" : ""} href={`${base}blog/month/${m}/`}>
-          {m}
-        </a>
-      </>
-    ))}
-  </p>
 
-  {filtered.length === 0 ? (
-    <p class="sub">この月の記事はまだありません。</p>
-  ) : (
-    <ul class="card-list">
-      {await Promise.all(
-        filtered.map(async (post) => {
-          const excerpt = await makeExcerpt(post);
-          const cats = normalizeCategory(post.frontmatter?.category);
+  <ul class="card-list">
+    {await Promise.all(
+      filteredPosts.map(async (post) => {
+        const excerpt = await makeExcerpt(post);
 
-          return (
-            <li class="card">
-              <a class="card-link" href={post.url}>
-                <div class="card-head">
-                  <p class="card-title">{post.frontmatter.title}</p>
+        return (
+          <li class="card">
+            <a class="card-link" href={post.url}>
+              <div class="card-head">
+                <p class="card-title">
+                  {post.frontmatter.title}
+                </p>
 
-                  <p class="card-meta">
-                    <span class="card-date">{formatDate(post.frontmatter.date)}</span>
-                    {cats.map((cat) => (
-                      <span class={`badge badge-${slugifyClass(cat)}`}>{cat}</span>
-                    ))}
-                  </p>
-                </div>
+                <p class="card-meta">
+  <span
+    class={`badge ${
+      formatDate(post.frontmatter.date).startsWith(month)
+        ? "badge-month is-active"
+        : "badge-month"
+    }`}
+  >
+    {month}
+  </span>
 
-                {excerpt && <p class="card-excerpt">{excerpt}</p>}
-              </a>
-            </li>
-          );
-        })
-      )}
-    </ul>
-  )}
+  <span class={`badge badge-${post.frontmatter.category}`}>
+    {String(post.frontmatter.category)}
+  </span>
+</p>
+
+              </div>
+
+              {excerpt && (
+                <p class="card-excerpt">{excerpt}</p>
+              )}
+            </a>
+          </li>
+        );
+      })
+    )}
+  </ul>
+
+  <p><a href="/blog/">← all</a></p>
+  <p><a href="/">← Home</a></p>
 </BaseLayout>
+
+
+
+
+

@@ -1,7 +1,6 @@
 ---
 layout: ../../layouts/BaseLayout.astro
 title: サイトとブログを作ってみた
-description: はてなブログから離れて自分のサイトとブログを作った所感。
 date: 2025-12-21
 category: diary
 showDate: true
@@ -49,7 +48,7 @@ h3 になると、補足や区切りとしてちょうどいいサイズにな�
 ## 外部リンクカードのテスト
 
 <div class="link-card">
-  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener noreferrer">
+  <a href="https://www.evangelion.jp/" target="_blank" rel="noopener">
     <div class="link-card-title">
       エヴァンゲリオン公式サイト
     </div>

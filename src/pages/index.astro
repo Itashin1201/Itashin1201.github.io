@@ -1,12 +1,18 @@
 ---
+import BaseLayout from "../layouts/BaseLayout.astro";
+const year = new Date().getFullYear();
 ---
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <title>Itashin1201</title>
-  </head>
-  <body>
-    <h1>Astro + GitHub Pages OK</h1>
-    <p>{new Date().toISOString()}</p>
-  </body>
-</html>
+
+<BaseLayout title="愛と幽相">
+  <h1>愛と幽相</h1>
+  <p class="sub">夜が普通に明けた日に、ぼんやりとしてた。もっとぼんやりしてればいいのに、と思った。</p>
+
+  <p>今日はロックンロールのあつい日でした。明日も。きっとずっと。</p>
+
+  <nav>
+    <a href="/blog/">Blog</a>
+    <a href="https://github.com/itashin1201" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+
+  <footer class="footer">© {year} itashin</footer>
+</BaseLayout>

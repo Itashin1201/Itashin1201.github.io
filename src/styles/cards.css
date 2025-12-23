@@ -36,6 +36,10 @@
   background: rgba(255,255,255,0.06);
 }
 
+.card a{
+  text-decoration: none;
+}
+
 .card-link{
   display: block;
   color: inherit;
@@ -50,7 +54,7 @@
 .card-head{
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 
@@ -65,18 +69,8 @@
   margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
-  letter-spacing: 0.02em;
-
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  text-align: right;
-}
-
-.card-date{
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .card-excerpt{

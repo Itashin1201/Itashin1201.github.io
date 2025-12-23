@@ -18,12 +18,10 @@ article h3{
 }
 
 article img{
-  max-width: 100%;
+  max-width: 90%;
   height: auto;
   display: block;
   margin: 22px auto;
-  border-radius: 12px;
-  border: 1px solid var(--border);
 }
 
 /* ===== Post header ===== */
