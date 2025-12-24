@@ -4,14 +4,12 @@ import { getLastUpdated } from "../utils/getLastUpdated";
 
 const {
   frontmatter = {},
-  // md 以外のページ（index / blog一覧 / 404など）で渡す props
   title: propTitle,
   description: propDescription,
   showDate: propShowDate,
   date: propDate,
 } = Astro.props;
 
-// frontmatter と props の両方に対応（props を優先）
 const title = propTitle ?? frontmatter.title ?? "愛と幽相";
 const description =
   propDescription ?? frontmatter.description ?? "断片を書き留める場所。";
@@ -26,11 +24,8 @@ const isoDate = isValidDate ? dateObj.toISOString() : null;
 
 const siteUrl = "https://itashin1201.github.io";
 const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
-
-// ★ OGP画像（public/og.png を想定）
 const ogImageUrl = `${siteUrl}${import.meta.env.BASE_URL}og.png`;
 
-// ★ サイト最終更新日（YYYY/MM/DD）
 const lastUpdated = await getLastUpdated();
 
 // ===== ナビ制御 =====
@@ -76,31 +71,29 @@ const isSearchPage = currentPath === normalizePath(`${base}search/`);
   </head>
 
   <body>
-    <!-- ★ テーマ切り替えボタン -->
     <button id="theme-toggle" aria-label="Toggle theme">dark</button>
 
     <main class="container">
-      <!-- ★ 共通ナビ -->
       {!isHome && (
         <nav class="site-nav">
           {isBlogIndex ? (
             <>
               <a href={base}>Home</a>
-              <span class="sep" aria-hidden="true"> / </span>
+              <span class="sep"> / </span>
               <a href={`${base}search/`}>Search</a>
             </>
           ) : isSearchPage ? (
             <>
               <a href={base}>Home</a>
-              <span class="sep" aria-hidden="true"> / </span>
+              <span class="sep"> / </span>
               <a href={`${base}blog/`}>Blog</a>
             </>
           ) : (
             <>
               <a href={base}>Home</a>
-              <span class="sep" aria-hidden="true"> / </span>
+              <span class="sep"> / </span>
               <a href={`${base}blog/`}>Blog</a>
-              <span class="sep" aria-hidden="true"> / </span>
+              <span class="sep"> / </span>
               <a href={`${base}search/`}>Search</a>
             </>
           )}
@@ -108,20 +101,18 @@ const isSearchPage = currentPath === normalizePath(`${base}search/`);
       )}
 
       {showDate && (
-        <>
-          <header class="post-header">
-            <div>
-              <div class="post-site">愛と幽相</div>
-              <h1 class="post-title">{title}</h1>
-            </div>
+        <header class="post-header">
+          <div>
+            <div class="post-site">愛と幽相</div>
+            <h1 class="post-title">{title}</h1>
+          </div>
 
-            {displayDate && (
-              <time class="post-date" datetime={isoDate}>
-                {displayDate}
-              </time>
-            )}
-          </header>
-        </>
+          {displayDate && (
+            <time class="post-date" datetime={isoDate}>
+              {displayDate}
+            </time>
+          )}
+        </header>
       )}
 
       <article>
@@ -129,8 +120,12 @@ const isSearchPage = currentPath === normalizePath(`${base}search/`);
       </article>
     </main>
 
-    <!-- ★ フッター：サイト最終更新 -->
-    <footer class="footer">
+    <!-- ★ フッター（統合版） -->
+    <footer class="site-footer">
+      <div class="copyright">
+        © {new Date().getFullYear()} itashin
+      </div>
+
       {lastUpdated && (
         <div class="last-updated">
           最終更新：{lastUpdated}
@@ -138,7 +133,6 @@ const isSearchPage = currentPath === normalizePath(`${base}search/`);
       )}
     </footer>
 
-    <!-- ★ 切り替え用スクリプト -->
     <script>
       const key = "theme";
       const btn = document.getElementById("theme-toggle");
