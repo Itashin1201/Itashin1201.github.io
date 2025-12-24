@@ -75,4 +75,10 @@ mark {
   margin-top: 0.2rem;
 }
 
+.search-count {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-bottom: 0.8rem;
+}
+
 
