@@ -36,6 +36,8 @@ const currentPath = normalizePath(Astro.url.pathname);
 const isHome = currentPath === normalizePath(base);
 const isBlogIndex = currentPath === normalizePath(`${base}blog/`);
 const isSearchPage = currentPath === normalizePath(`${base}search/`);
+const isBlogChild =
+  currentPath.startsWith(normalizePath(`${base}blog/`)) && !isBlogIndex;
 ---
 
 <!doctype html>
@@ -77,6 +79,14 @@ const isSearchPage = currentPath === normalizePath(`${base}search/`);
       {!isHome && (
         <nav class="site-nav">
           {isBlogIndex ? (
+            <>
+              <a href={base}>Home</a>
+              <span class="sep"> / </span>
+              <a href={`${base}blog/`}>Blog</a>
+              <span class="sep"> / </span>
+              <a href={`${base}search/`}>Search</a>
+            </>
+          ) : isBlogChild ? (
             <>
               <a href={base}>Home</a>
               <span class="sep"> / </span>
