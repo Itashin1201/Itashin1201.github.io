@@ -2,3 +2,15 @@
    BaseLayout.astro imports this file.
    Feel free to rename to index.css later if you prefer. */
 @import "./index.css";
+
+.footer {
+  margin-top: 4rem;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.last-updated {
+  opacity: 0.8;
+}
