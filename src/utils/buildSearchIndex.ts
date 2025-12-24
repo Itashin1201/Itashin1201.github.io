@@ -5,14 +5,15 @@ export async function buildSearchIndex() {
 
   for (const path in modules) {
     const mod: any = await modules[path]();
+
     const { title, date, description } = mod.frontmatter ?? {};
 
-    const url = path
-      .replace("../pages", import.meta.env.BASE_URL)
-      .replace(/\.md$/, "/");
+    // ★ Astroが解決した「正しいURL」
+    const url = mod.url;
 
+    // 本文（検索用）
     const content = mod.compiledContent
-      ? mod.compiledContent()
+      ? String(mod.compiledContent())
       : "";
 
     items.push({
@@ -20,7 +21,7 @@ export async function buildSearchIndex() {
       description,
       date,
       url,
-      content: String(content),
+      content,
     });
   }
 
