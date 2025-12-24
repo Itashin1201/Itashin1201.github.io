@@ -55,6 +55,16 @@ const index = await buildSearchIndex();
       return Number.isFinite(t) ? t : 0;
     };
 
+    const formatDate = (d) => {
+      if (!d) return "";
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return "";
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${y}/${m}/${day}`;
+    };
+
     const runSearch = (raw) => {
       results.innerHTML = "";
       countEl.textContent = "";
@@ -103,6 +113,17 @@ const index = await buildSearchIndex();
       // ★ 日付順ソート（新しい順）
       hits.sort((a, b) => toTime(b.date) - toTime(a.date));
 
+      // ★ 0件ヒット時
+      if (hits.length === 0) {
+        countEl.textContent = "0件ヒット";
+
+        const li = document.createElement("li");
+        li.className = "search-item search-empty";
+        li.textContent = "該当する記事は見つかりませんでした。";
+        results.appendChild(li);
+        return;
+      }
+
       // ★ 描画
       for (const h of hits) {
         const snippetWord = words.find((w) =>
@@ -119,6 +140,13 @@ const index = await buildSearchIndex();
             <div class="search-item-title">
               ${highlight(h.title, raw)}
             </div>
+            ${
+              h.date
+                ? `<div class="search-item-date">
+                    ${formatDate(h.date)}
+                  </div>`
+                : ""
+            }
             ${
               h.description
                 ? `<div class="search-item-desc">
