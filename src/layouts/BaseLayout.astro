@@ -1,5 +1,6 @@
 ---
 import "../styles/site.css";
+import { getLastUpdated } from "../utils/getLastUpdated";
 
 const {
   frontmatter = {},
@@ -25,6 +26,9 @@ const isoDate = isValidDate ? dateObj.toISOString() : null;
 
 const siteUrl = "https://itashin1201.github.io";
 const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
+
+// ★ サイト最終更新日（YYYY/MM）
+const lastUpdated = await getLastUpdated();
 ---
 
 <!doctype html>
@@ -88,6 +92,15 @@ const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
         <slot />
       </article>
     </main>
+
+    <!-- ★ フッター：サイト最終更新 -->
+    <footer class="footer">
+      {lastUpdated && (
+        <div class="last-updated">
+          最終更新：{lastUpdated}
+        </div>
+      )}
+    </footer>
 
     <!-- ★ 切り替え用スクリプト -->
     <script>
