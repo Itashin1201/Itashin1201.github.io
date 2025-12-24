@@ -5,30 +5,51 @@ import { buildSearchIndex } from "../utils/buildSearchIndex";
 const index = await buildSearchIndex();
 ---
 
-<BaseLayout title="Search">
-  <input id="q" placeholder="検索…" />
-  <ul id="results"></ul>
+<BaseLayout title="Search" description="記事検索">
+  <section class="search">
+    <h1 class="search-title">検索</h1>
+
+    <input
+      id="search-input"
+      class="search-input"
+      type="search"
+      placeholder="キーワードを入力"
+      autocomplete="off"
+    />
+
+    <ul id="search-results" class="search-results"></ul>
+  </section>
 
   <script define:vars={{ index }}>
-    const input = document.getElementById("q");
-    const results = document.getElementById("results");
+    const input = document.getElementById("search-input");
+    const results = document.getElementById("search-results");
 
-    const normalize = (s) => s.toLowerCase();
+    const normalize = (s) => (s ?? "").toLowerCase();
 
     input.addEventListener("input", () => {
-      const q = normalize(input.value);
+      const q = normalize(input.value.trim());
       results.innerHTML = "";
 
       if (!q) return;
 
       for (const item of index) {
         if (
-          normalize(item.title ?? "").includes(q) ||
-          normalize(item.description ?? "").includes(q) ||
-          normalize(item.content ?? "").includes(q)
+          normalize(item.title).includes(q) ||
+          normalize(item.description).includes(q) ||
+          normalize(item.content).includes(q)
         ) {
           const li = document.createElement("li");
-          li.innerHTML = `<a href="${item.url}">${item.title}</a>`;
+          li.className = "search-item";
+          li.innerHTML = `
+            <a href="${item.url}" class="search-link">
+              <div class="search-item-title">${item.title}</div>
+              ${
+                item.description
+                  ? `<div class="search-item-desc">${item.description}</div>`
+                  : ""
+              }
+            </a>
+          `;
           results.appendChild(li);
         }
       }
