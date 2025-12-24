@@ -26,6 +26,26 @@ const index = await buildSearchIndex();
 
     const normalize = (s) => (s ?? "").toLowerCase();
 
+    const escapeRegExp = (s) =>
+      s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const highlight = (text, q) => {
+      if (!q) return text;
+      const re = new RegExp(`(${escapeRegExp(q)})`, "gi");
+      return String(text ?? "").replace(re, "<mark>$1</mark>");
+    };
+
+    const makeSnippet = (content, q, len = 40) => {
+      const c = String(content ?? "");
+      if (!q) return "";
+      const idx = c.toLowerCase().indexOf(q.toLowerCase());
+      if (idx === -1) return "";
+
+      const start = Math.max(0, idx - len);
+      const end = Math.min(c.length, idx + q.length + len);
+      return highlight(c.slice(start, end), q);
+    };
+
     input.addEventListener("input", () => {
       const q = normalize(input.value.trim());
       results.innerHTML = "";
@@ -33,25 +53,41 @@ const index = await buildSearchIndex();
       if (!q) return;
 
       for (const item of index) {
-        if (
-          normalize(item.title).includes(q) ||
-          normalize(item.description).includes(q) ||
-          normalize(item.content).includes(q)
-        ) {
-          const li = document.createElement("li");
-          li.className = "search-item";
-          li.innerHTML = `
-            <a href="${item.url}" class="search-link">
-              <div class="search-item-title">${item.title}</div>
-              ${
-                item.description
-                  ? `<div class="search-item-desc">${item.description}</div>`
-                  : ""
-              }
-            </a>
-          `;
-          results.appendChild(li);
-        }
+        const title = String(item.title ?? "");
+        const description = String(item.description ?? "");
+        const content = String(item.content ?? "");
+        const url = String(item.url ?? "");
+
+        const hit =
+          normalize(title).includes(q) ||
+          normalize(description).includes(q) ||
+          normalize(content).includes(q);
+
+        if (!hit) continue;
+
+        const snippet = makeSnippet(content, q);
+
+        const li = document.createElement("li");
+        li.className = "search-item";
+        li.innerHTML = `
+          <a href="${url}" class="search-link">
+            <div class="search-item-title">${highlight(title, q)}</div>
+            ${
+              description
+                ? `<div class="search-item-desc">${highlight(
+                    description,
+                    q
+                  )}</div>`
+                : ""
+            }
+            ${
+              snippet
+                ? `<div class="search-item-snippet">…${snippet}…</div>`
+                : ""
+            }
+          </a>
+        `;
+        results.appendChild(li);
       }
     });
   </script>
