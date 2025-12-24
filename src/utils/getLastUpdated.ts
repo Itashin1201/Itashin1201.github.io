@@ -1,25 +1,24 @@
-import { getCollection } from "astro:content";
+export async function getLastUpdated(): Promise<string | null> {
+  const modules = import.meta.glob("../pages/blog/*.md");
 
-function toDate(d: unknown): Date | null {
-  if (!d) return null;
-  if (d instanceof Date) return d;
-  const parsed = new Date(String(d));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
+  const dates: number[] = [];
 
-export async function getLastUpdatedYM() {
-  // ここはあなたの collection 名に合わせて変えてね（例: "posts"）
-  const posts = await getCollection("posts");
+  for (const path in modules) {
+    const mod: any = await modules[path]();
+    const date = mod.frontmatter?.date;
+    if (!date) continue;
 
-  // 優先順位：updatedAt（あれば）→ date
-  const dates = posts
-    .map((p) => toDate((p.data as any).updatedAt) ?? toDate((p.data as any).date))
-    .filter((d): d is Date => d !== null);
+    const time = new Date(date).getTime();
+    if (!isNaN(time)) {
+      dates.push(time);
+    }
+  }
 
   if (dates.length === 0) return null;
 
-  const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
-  const yyyy = latest.getFullYear();
-  const mm = String(latest.getMonth() + 1).padStart(2, "0");
-  return `${yyyy}/${mm}`;
+  const latest = new Date(Math.max(...dates));
+  const y = latest.getFullYear();
+  const m = String(latest.getMonth() + 1).padStart(2, "0");
+
+  return `${y}/${m}`;
 }
