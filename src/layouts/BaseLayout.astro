@@ -32,6 +32,11 @@ const ogImageUrl = `${siteUrl}${import.meta.env.BASE_URL}og.png`;
 
 // ★ サイト最終更新日（YYYY/MM/DD）
 const lastUpdated = await getLastUpdated();
+
+// ★ トップページ判定
+const base = import.meta.env.BASE_URL;
+const normalizePath = (p) => (p.endsWith("/") ? p : `${p}/`);
+const isHome = normalizePath(Astro.url.pathname) === normalizePath(base);
 ---
 
 <!doctype html>
@@ -71,14 +76,16 @@ const lastUpdated = await getLastUpdated();
     <button id="theme-toggle" aria-label="Toggle theme">dark</button>
 
     <main class="container">
-      <!-- ★ 共通ナビ -->
-      <nav class="site-nav">
-        <a href={import.meta.env.BASE_URL}>Home</a>
-        <span class="sep" aria-hidden="true"> / </span>
-        <a href={`${import.meta.env.BASE_URL}blog/`}>Blog</a>
-        <span class="sep" aria-hidden="true"> / </span>
-        <a href={`${import.meta.env.BASE_URL}search/`}>Search</a>
-      </nav>
+      <!-- ★ 共通ナビ（トップページでは非表示） -->
+      {!isHome && (
+        <nav class="site-nav">
+          <a href={import.meta.env.BASE_URL}>Home</a>
+          <span class="sep" aria-hidden="true"> / </span>
+          <a href={`${import.meta.env.BASE_URL}blog/`}>Blog</a>
+          <span class="sep" aria-hidden="true"> / </span>
+          <a href={`${import.meta.env.BASE_URL}search/`}>Search</a>
+        </nav>
+      )}
 
       {showDate && (
         <>
