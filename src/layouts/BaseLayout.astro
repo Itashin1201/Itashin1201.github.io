@@ -33,10 +33,13 @@ const ogImageUrl = `${siteUrl}${import.meta.env.BASE_URL}og.png`;
 // ★ サイト最終更新日（YYYY/MM/DD）
 const lastUpdated = await getLastUpdated();
 
-// ★ トップページ判定
+// ===== ナビ制御 =====
 const base = import.meta.env.BASE_URL;
 const normalizePath = (p) => (p.endsWith("/") ? p : `${p}/`);
-const isHome = normalizePath(Astro.url.pathname) === normalizePath(base);
+const currentPath = normalizePath(Astro.url.pathname);
+
+const isHome = currentPath === normalizePath(base);
+const isBlogIndex = currentPath === normalizePath(`${base}blog/`);
 ---
 
 <!doctype html>
@@ -76,14 +79,24 @@ const isHome = normalizePath(Astro.url.pathname) === normalizePath(base);
     <button id="theme-toggle" aria-label="Toggle theme">dark</button>
 
     <main class="container">
-      <!-- ★ 共通ナビ（トップページでは非表示） -->
+      <!-- ★ 共通ナビ -->
       {!isHome && (
         <nav class="site-nav">
-          <a href={import.meta.env.BASE_URL}>Home</a>
-          <span class="sep" aria-hidden="true"> / </span>
-          <a href={`${import.meta.env.BASE_URL}blog/`}>Blog</a>
-          <span class="sep" aria-hidden="true"> / </span>
-          <a href={`${import.meta.env.BASE_URL}search/`}>Search</a>
+          {isBlogIndex ? (
+            <>
+              <a href={base}>Home</a>
+              <span class="sep" aria-hidden="true"> / </span>
+              <a href={`${base}search/`}>Search</a>
+            </>
+          ) : (
+            <>
+              <a href={base}>Home</a>
+              <span class="sep" aria-hidden="true"> / </span>
+              <a href={`${base}blog/`}>Blog</a>
+              <span class="sep" aria-hidden="true"> / </span>
+              <a href={`${base}search/`}>Search</a>
+            </>
+          )}
         </nav>
       )}
 
@@ -103,9 +116,9 @@ const isHome = normalizePath(Astro.url.pathname) === normalizePath(base);
           </header>
 
           <div class="back">
-            <a href={`${import.meta.env.BASE_URL}blog/`}>← Blog</a>
+            <a href={`${base}blog/`}>← Blog</a>
             <span> / </span>
-            <a href={import.meta.env.BASE_URL}>Home</a>
+            <a href={base}>Home</a>
           </div>
         </>
       )}
