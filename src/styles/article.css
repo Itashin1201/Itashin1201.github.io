@@ -1,7 +1,8 @@
 /* ===== Article ===== */
 
 article h2{
-  margin-top: 2.5rem;
+  /* 見出し下にもう一段余白を作る */
+  margin: 2.5rem 0 1.15rem;
 }
 
 article p{
@@ -13,8 +14,14 @@ article h2 + p{
 }
 
 article h3{
-  margin: 26px 0 10px;
+  margin: 26px 0 14px;
   font-size: 1.08rem;
+}
+
+article h4,
+article h5,
+article h6{
+  margin: 22px 0 12px;
 }
 
 article img{
@@ -22,6 +29,27 @@ article img{
   height: auto;
   display: block;
   margin: 22px auto;
+}
+
+/* 箇条書きの前後余白を強化 */
+article ul,
+article ol{
+  margin: 1.05em 0 1.25em;
+  padding-left: 1.25em;
+}
+
+article li{
+  margin: 0.35em 0;
+}
+
+/* 見出し直下のリストが詰まらないように */
+article h2 + ul,
+article h2 + ol,
+article h3 + ul,
+article h3 + ol,
+article h4 + ul,
+article h4 + ol{
+  margin-top: 0.35em;
 }
 
 /* ===== Post header ===== */
