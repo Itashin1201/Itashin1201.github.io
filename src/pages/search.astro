@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { buildSearchIndex } from "../utils/buildSearchIndex";
+
+const index = await buildSearchIndex();
+---
+
+<BaseLayout title="Search">
+  <input id="q" placeholder="検索…" />
+  <ul id="results"></ul>
+
+  <script define:vars={{ index }}>
+    const input = document.getElementById("q");
+    const results = document.getElementById("results");
+
+    const normalize = (s) => s.toLowerCase();
+
+    input.addEventListener("input", () => {
+      const q = normalize(input.value);
+      results.innerHTML = "";
+
+      if (!q) return;
+
+      for (const item of index) {
+        if (
+          normalize(item.title ?? "").includes(q) ||
+          normalize(item.description ?? "").includes(q) ||
+          normalize(item.content ?? "").includes(q)
+        ) {
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="${item.url}">${item.title}</a>`;
+          results.appendChild(li);
+        }
+      }
+    });
+  </script>
+</BaseLayout>
