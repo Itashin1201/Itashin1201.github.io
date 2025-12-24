@@ -49,13 +49,19 @@ const index = await buildSearchIndex();
       return highlight(c.slice(start, end), q);
     };
 
+    const toTime = (d) => {
+      if (!d) return 0;
+      const t = new Date(d).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+
     const runSearch = (raw) => {
       results.innerHTML = "";
       countEl.textContent = "";
 
       if (!raw) return;
 
-      // ★ URL に反映
+      // ★ URL に検索語を反映
       const params = new URLSearchParams(window.location.search);
       params.set("q", raw);
       history.replaceState(null, "", `?${params.toString()}`);
@@ -66,13 +72,14 @@ const index = await buildSearchIndex();
         .map(normalize)
         .filter(Boolean);
 
-      let hitCount = 0;
+      const hits = [];
 
       for (const item of index) {
         const title = String(item.title ?? "");
         const description = String(item.description ?? "");
         const content = String(item.content ?? "");
         const url = String(item.url ?? "");
+        const date = item.date;
 
         const haystack =
           normalize(title) +
@@ -84,26 +91,38 @@ const index = await buildSearchIndex();
         const hit = words.every((w) => haystack.includes(w));
         if (!hit) continue;
 
-        hitCount++;
+        hits.push({
+          title,
+          description,
+          content,
+          url,
+          date,
+        });
+      }
 
+      // ★ 日付順ソート（新しい順）
+      hits.sort((a, b) => toTime(b.date) - toTime(a.date));
+
+      // ★ 描画
+      for (const h of hits) {
         const snippetWord = words.find((w) =>
-          normalize(content).includes(w)
+          normalize(h.content).includes(w)
         );
         const snippet = snippetWord
-          ? makeSnippet(content, snippetWord)
+          ? makeSnippet(h.content, snippetWord)
           : "";
 
         const li = document.createElement("li");
         li.className = "search-item";
         li.innerHTML = `
-          <a href="${url}" class="search-link">
+          <a href="${h.url}" class="search-link">
             <div class="search-item-title">
-              ${highlight(title, raw)}
+              ${highlight(h.title, raw)}
             </div>
             ${
-              description
+              h.description
                 ? `<div class="search-item-desc">
-                    ${highlight(description, raw)}
+                    ${highlight(h.description, raw)}
                   </div>`
                 : ""
             }
@@ -117,7 +136,7 @@ const index = await buildSearchIndex();
         results.appendChild(li);
       }
 
-      countEl.textContent = `${hitCount}件ヒット`;
+      countEl.textContent = `${hits.length}件ヒット`;
     };
 
     // ★ 入力イベント
