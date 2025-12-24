@@ -27,7 +27,10 @@ const isoDate = isValidDate ? dateObj.toISOString() : null;
 const siteUrl = "https://itashin1201.github.io";
 const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
 
-// ★ サイト最終更新日（YYYY/MM）
+// ★ OGP画像（public/og.png を想定）
+const ogImageUrl = `${siteUrl}${import.meta.env.BASE_URL}og.png`;
+
+// ★ サイト最終更新日（YYYY/MM/DD）
 const lastUpdated = await getLastUpdated();
 ---
 
@@ -44,8 +47,11 @@ const lastUpdated = await getLastUpdated();
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={pageUrl} />
+    <meta property="og:image" content={ogImageUrl} />
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImageUrl} />
+
     <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.png`} />
 
     <script>
