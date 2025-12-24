@@ -19,6 +19,7 @@ export async function getLastUpdated(): Promise<string | null> {
   const latest = new Date(Math.max(...dates));
   const y = latest.getFullYear();
   const m = String(latest.getMonth() + 1).padStart(2, "0");
+  const d = String(latest.getDate()).padStart(2, "0");
 
-  return `${y}/${m}`;
+  return `${y}/${m}/${d}`;
 }
