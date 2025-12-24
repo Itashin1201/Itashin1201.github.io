@@ -65,6 +65,12 @@ const index = await buildSearchIndex();
       return `${y}/${m}/${day}`;
     };
 
+    const normalizeCategories = (cat) => {
+      if (!cat) return [];
+      if (Array.isArray(cat)) return cat.map(String);
+      return [String(cat)];
+    };
+
     const runSearch = (raw) => {
       results.innerHTML = "";
       countEl.textContent = "";
@@ -90,13 +96,16 @@ const index = await buildSearchIndex();
         const content = String(item.content ?? "");
         const url = String(item.url ?? "");
         const date = item.date;
+        const categories = normalizeCategories(item.category ?? item.categories);
 
         const haystack =
           normalize(title) +
           " " +
           normalize(description) +
           " " +
-          normalize(content);
+          normalize(content) +
+          " " +
+          normalize(categories.join(" "));
 
         const hit = words.every((w) => haystack.includes(w));
         if (!hit) continue;
@@ -107,6 +116,7 @@ const index = await buildSearchIndex();
           content,
           url,
           date,
+          categories,
         });
       }
 
@@ -140,13 +150,24 @@ const index = await buildSearchIndex();
             <div class="search-item-title">
               ${highlight(h.title, raw)}
             </div>
-            ${
-              h.date
-                ? `<div class="search-item-date">
-                    ${formatDate(h.date)}
-                  </div>`
-                : ""
-            }
+
+            <div class="search-item-meta">
+              ${
+                h.date
+                  ? `<span class="search-item-date">${formatDate(h.date)}</span>`
+                  : ""
+              }
+              ${
+                h.categories.length
+                  ? `<span class="search-item-categories">
+                      ${h.categories
+                        .map((c) => `<span class="search-category">${c}</span>`)
+                        .join("")}
+                    </span>`
+                  : ""
+              }
+            </div>
+
             ${
               h.description
                 ? `<div class="search-item-desc">
