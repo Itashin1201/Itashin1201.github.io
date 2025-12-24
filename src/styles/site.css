@@ -63,3 +63,16 @@
   margin-top: 0.2rem;
 }
 
+mark {
+  background: rgba(255, 220, 120, 0.6);
+  color: inherit;
+  padding: 0 0.1em;
+}
+
+.search-item-snippet {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin-top: 0.2rem;
+}
+
+
