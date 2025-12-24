@@ -7,7 +7,9 @@ pre{
   font-size: 0.9rem;
   line-height: 1.6;
   border-radius: 6px;
-  margin: 1.2em 0;
+
+  /* コードブロックの上下余白を強めて区切りを明確に */
+  margin: 1.6em 0 1.8em;
 }
 
 code{
@@ -19,4 +21,11 @@ p code{
   padding: 0.15em 0.35em;
   border-radius: 4px;
   font-size: 0.9em;
+}
+
+/* 見出し直下のコードが詰まらないように（地味に効く） */
+article h2 + pre,
+article h3 + pre,
+article h4 + pre{
+  margin-top: 0.8em;
 }
