@@ -13,9 +13,12 @@ const index = await buildSearchIndex();
       id="search-input"
       class="search-input"
       type="search"
-      placeholder="キーワードを入力"
+      placeholder="キーワードを入力（スペース区切りでAND検索）"
       autocomplete="off"
     />
+
+    <!-- ★ 件数表示 -->
+    <p id="search-count" class="search-count"></p>
 
     <ul id="search-results" class="search-results"></ul>
   </section>
@@ -23,6 +26,7 @@ const index = await buildSearchIndex();
   <script define:vars={{ index }}>
     const input = document.getElementById("search-input");
     const results = document.getElementById("search-results");
+    const countEl = document.getElementById("search-count");
 
     const normalize = (s) => (s ?? "").toLowerCase();
 
@@ -37,7 +41,6 @@ const index = await buildSearchIndex();
 
     const makeSnippet = (content, q, len = 40) => {
       const c = String(content ?? "");
-      if (!q) return "";
       const idx = c.toLowerCase().indexOf(q.toLowerCase());
       if (idx === -1) return "";
 
@@ -47,10 +50,19 @@ const index = await buildSearchIndex();
     };
 
     input.addEventListener("input", () => {
-      const q = normalize(input.value.trim());
+      const raw = input.value.trim();
       results.innerHTML = "";
+      countEl.textContent = "";
 
-      if (!q) return;
+      if (!raw) return;
+
+      // ★ スペース区切り AND 検索
+      const words = raw
+        .split(/\s+/)
+        .map(normalize)
+        .filter(Boolean);
+
+      let hitCount = 0;
 
       for (const item of index) {
         const title = String(item.title ?? "");
@@ -58,26 +70,38 @@ const index = await buildSearchIndex();
         const content = String(item.content ?? "");
         const url = String(item.url ?? "");
 
-        const hit =
-          normalize(title).includes(q) ||
-          normalize(description).includes(q) ||
-          normalize(content).includes(q);
+        const haystack =
+          normalize(title) +
+          " " +
+          normalize(description) +
+          " " +
+          normalize(content);
 
+        // ★ すべての単語を含むか？
+        const hit = words.every((w) => haystack.includes(w));
         if (!hit) continue;
 
-        const snippet = makeSnippet(content, q);
+        hitCount++;
+
+        const snippetWord = words.find((w) =>
+          normalize(content).includes(w)
+        );
+        const snippet = snippetWord
+          ? makeSnippet(content, snippetWord)
+          : "";
 
         const li = document.createElement("li");
         li.className = "search-item";
         li.innerHTML = `
           <a href="${url}" class="search-link">
-            <div class="search-item-title">${highlight(title, q)}</div>
+            <div class="search-item-title">
+              ${highlight(title, raw)}
+            </div>
             ${
               description
-                ? `<div class="search-item-desc">${highlight(
-                    description,
-                    q
-                  )}</div>`
+                ? `<div class="search-item-desc">
+                    ${highlight(description, raw)}
+                  </div>`
                 : ""
             }
             ${
@@ -89,6 +113,9 @@ const index = await buildSearchIndex();
         `;
         results.appendChild(li);
       }
+
+      // ★ 件数表示
+      countEl.textContent = `${hitCount}件ヒット`;
     });
   </script>
 </BaseLayout>
