@@ -56,7 +56,7 @@
 }
 
 .badge-diary{
-  color: #4b5563;
+  color: var(--muted);
 }
 
 .badge-tech{
