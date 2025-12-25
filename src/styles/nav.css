@@ -1,10 +1,25 @@
 /* ===== Navigation ===== */
 
-nav{
+.site-nav{
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 22px;
+}
+
+.site-nav a{
+  text-decoration: none;
+}
+
+.site-nav a:hover{
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.site-nav a.is-active{
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 600;
 }
 
 .sub{
