@@ -8,23 +8,52 @@ const index = await buildSearchIndex();
 <BaseLayout title="Search" description="記事検索">
   <Fragment slot="head">
     <meta name="robots" content="noindex, nofollow" />
+    <style>
+      {`
+        .sr-only{
+          position:absolute;
+          width:1px;
+          height:1px;
+          padding:0;
+          margin:-1px;
+          overflow:hidden;
+          clip:rect(0,0,0,0);
+          white-space:nowrap;
+          border:0;
+        }
+      `}
+    </style>
   </Fragment>
 
   <section class="search-container">
     <h1 class="search-title">検索</h1>
 
+    <label class="sr-only" for="search-input">検索キーワード</label>
     <input
       id="search-input"
       class="search-input"
       type="search"
       placeholder="キーワードを入力（スペース区切りでAND検索）"
       autocomplete="off"
+      autocapitalize="off"
       spellcheck="false"
+      aria-controls="search-results"
+      aria-describedby="search-count"
     />
 
-    <p id="search-count" class="search-stats"></p>
+    <p
+      id="search-count"
+      class="search-stats"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></p>
 
-    <ul id="search-results" class="search-results"></ul>
+    <ul
+      id="search-results"
+      class="search-results"
+      aria-label="検索結果"
+    ></ul>
   </section>
 
   <script define:vars={{ index }}>
