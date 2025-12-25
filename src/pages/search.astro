@@ -7,6 +7,7 @@ const index = await buildSearchIndex();
 
 <BaseLayout title="Search" description="記事検索">
   <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
     <style is:global>
       .sr-only{
         position:absolute;
@@ -39,7 +40,6 @@ const index = await buildSearchIndex();
       aria-describedby="search-count"
     />
 
-    <!-- ★ 件数表示（読み上げ対応） -->
     <p
       id="search-count"
       class="search-count"
@@ -48,11 +48,7 @@ const index = await buildSearchIndex();
       aria-atomic="true"
     ></p>
 
-    <ul
-      id="search-results"
-      class="search-results"
-      aria-label="検索結果"
-    ></ul>
+    <ul id="search-results" class="search-results" aria-label="検索結果"></ul>
   </section>
 
   <script define:vars={{ index }}>
@@ -65,20 +61,33 @@ const index = await buildSearchIndex();
     const escapeRegExp = (s) =>
       s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    const highlight = (text, q) => {
-      if (!q) return text;
-      const re = new RegExp(`(${escapeRegExp(q)})`, "gi");
-      return String(text ?? "").replace(re, "<mark>$1</mark>");
+    const escapeHtml = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const highlightWords = (text, words) => {
+      let out = escapeHtml(text ?? "");
+      for (const w of words ?? []) {
+        if (!w) continue;
+        const re = new RegExp(`(${escapeRegExp(w)})`, "gi");
+        out = out.replace(re, "<mark>$1</mark>");
+      }
+      return out;
     };
 
     const makeSnippet = (content, q, len = 40) => {
       const c = String(content ?? "");
-      const idx = c.toLowerCase().indexOf(q.toLowerCase());
+      const idx = c.toLowerCase().indexOf(String(q ?? "").toLowerCase());
       if (idx === -1) return "";
 
       const start = Math.max(0, idx - len);
-      const end = Math.min(c.length, idx + q.length + len);
-      return highlight(c.slice(start, end), q);
+      const end = Math.min(c.length, idx + String(q ?? "").length + len);
+
+      return highlightWords(c.slice(start, end), [q]);
     };
 
     const toTime = (d) => {
@@ -109,15 +118,13 @@ const index = await buildSearchIndex();
 
       if (!raw) return;
 
-      // ★ URL に検索語を反映
       const params = new URLSearchParams(window.location.search);
       params.set("q", raw);
       history.replaceState(null, "", `?${params.toString()}`);
 
-      // ★ スペース区切り AND 検索
       const words = raw
         .split(/\s+/)
-        .map(normalize)
+        .map((w) => normalize(w.trim()))
         .filter(Boolean);
 
       const hits = [];
@@ -152,10 +159,8 @@ const index = await buildSearchIndex();
         });
       }
 
-      // ★ 日付順ソート（新しい順）
       hits.sort((a, b) => toTime(b.date) - toTime(a.date));
 
-      // ★ 0件ヒット時
       if (hits.length === 0) {
         countEl.textContent = "0件ヒット";
 
@@ -166,47 +171,56 @@ const index = await buildSearchIndex();
         return;
       }
 
-      // ★ 描画
       for (const h of hits) {
         const snippetWord = words.find((w) =>
           normalize(h.content).includes(w)
         );
-        const snippet = snippetWord
-          ? makeSnippet(h.content, snippetWord)
-          : "";
+        const snippet = snippetWord ? makeSnippet(h.content, snippetWord) : "";
 
         const li = document.createElement("li");
         li.className = "search-item";
+
+        const metaParts = [];
+
+        if (h.date) {
+          metaParts.push(
+            `<span class="search-item-date">${escapeHtml(
+              formatDate(h.date)
+            )}</span>`
+          );
+        }
+
+        if (h.categories.length) {
+          metaParts.push(
+            `<span class="search-item-categories">${
+              h.categories
+                .map((c) => `<span class="search-category">${escapeHtml(c)}</span>`)
+                .join("")
+            }</span>`
+          );
+        }
+
         li.innerHTML = `
           <a href="${h.url}" class="search-link">
             <div class="search-item-title">
-              ${highlight(h.title, raw)}
-            </div>
-
-            <div class="search-item-meta">
-              ${
-                h.date
-                  ? `<span class="search-item-date">${formatDate(h.date)}</span>`
-                  : ""
-              }
-              ${
-                h.categories.length
-                  ? `<span class="search-item-categories">
-                      ${h.categories
-                        .map((c) => `<span class="search-category">${c}</span>`)
-                        .join("")}
-                    </span>`
-                  : ""
-              }
+              ${highlightWords(h.title, words)}
             </div>
 
             ${
-              h.description
-                ? `<div class="search-item-desc">
-                    ${highlight(h.description, raw)}
-                  </div>`
+              metaParts.length
+                ? `<div class="search-item-meta">${metaParts.join(" ")}</div>`
                 : ""
             }
+
+            ${
+              h.description
+                ? `<div class="search-item-desc">${highlightWords(
+                    h.description,
+                    words
+                  )}</div>`
+                : ""
+            }
+
             ${
               snippet
                 ? `<div class="search-item-snippet">…${snippet}…</div>`
@@ -214,13 +228,13 @@ const index = await buildSearchIndex();
             }
           </a>
         `;
+
         results.appendChild(li);
       }
 
       countEl.textContent = `${hits.length}件ヒット`;
     };
 
-    // ★ 入力イベント
     input.addEventListener("input", () => {
       const raw = input.value.trim();
 
@@ -237,7 +251,6 @@ const index = await buildSearchIndex();
       runSearch(raw);
     });
 
-    // ★ URL クエリから初期検索
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("q");
 
