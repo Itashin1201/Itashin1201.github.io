@@ -55,10 +55,25 @@
   background: rgba(255,255,255,0.08);
 }
 
+/* 自動配色（カテゴリ文字列→hue） */
+.badge-auto{
+  color: hsl(var(--h, 210), 55%, 35%);
+}
+
+[data-theme="dark"] .badge-auto{
+  color: hsl(var(--h, 210), 55%, 70%);
+}
+
+/* “中立色”にしたいカテゴリは上書き */
 .badge-diary{
   color: var(--muted);
 }
 
+.badge-test{
+  color: var(--muted);
+}
+
+/* 既存の手動色（好みならこのまま優先） */
 .badge-tech{
   color: #0369a1;
 }
