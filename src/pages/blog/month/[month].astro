@@ -1,14 +1,13 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { slugifyClass, categoryHue } from "../../../lib/blog.js";
+import {
+  formatDate,
+  normalizeCategory,
+  slugifyClass,
+  categoryHue,
+} from "../../../lib/blog.js";
 
 const base = import.meta.env.BASE_URL;
-
-/**
- * 日付フォーマット（YYYY-MM-DD）
- */
-const formatDate = (d) =>
-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
 
 /**
  * ===== 静的パス生成 =====
@@ -19,11 +18,9 @@ export async function getStaticPaths() {
 
   const months = [
     ...new Set(
-      posts.map((p) =>
-        new Date(p.frontmatter.date ?? Date.now())
-          .toISOString()
-          .slice(0, 7)
-      )
+      posts
+        .map((p) => formatDate(p.frontmatter?.date).slice(0, 7))
+        .filter(Boolean)
     ),
   ];
 
@@ -42,15 +39,15 @@ const posts = await Astro.glob("../*.md");
  * ===== 月でフィルタ =====
  */
 const filteredPosts = posts.filter((p) =>
-  formatDate(p.frontmatter.date).startsWith(month)
+  formatDate(p.frontmatter?.date).startsWith(String(month))
 );
 
 /**
  * ===== 日付順にソート =====
  */
 filteredPosts.sort((a, b) => {
-  const da = new Date(a.frontmatter.date ?? 0);
-  const db = new Date(b.frontmatter.date ?? 0);
+  const da = new Date(a.frontmatter?.date ?? 0);
+  const db = new Date(b.frontmatter?.date ?? 0);
   return db - da;
 });
 
@@ -97,12 +94,6 @@ const makeExcerpt = async (post) => {
     .replace(/\s+/g, " ")
     .trim();
 };
-
-const normalizeCategory = (cat) => {
-  if (!cat) return [];
-  const arr = Array.isArray(cat) ? cat : [cat];
-  return arr.map((c) => String(c).trim()).filter(Boolean);
-};
 ---
 
 <BaseLayout title={`Blog / ${month}`}>
@@ -114,40 +105,50 @@ const normalizeCategory = (cat) => {
     <span class="is-active">{month}</span>
   </p>
 
-  <ul class="card-list">
-    {await Promise.all(
-      filteredPosts.map(async (post) => {
-        const excerpt = await makeExcerpt(post);
-        const cats = normalizeCategory(post.frontmatter.category);
+  {filteredPosts.length === 0 ? (
+    <>
+      <p class="sub">この月の記事はありません。</p>
+      <p><a href={`${base}blog/`}>← all</a></p>
+      <p><a href={base}>← Home</a></p>
+    </>
+  ) : (
+    <>
+      <ul class="card-list">
+        {await Promise.all(
+          filteredPosts.map(async (post) => {
+            const excerpt = await makeExcerpt(post);
+            const cats = normalizeCategory(post.frontmatter?.category);
 
-        return (
-          <li class="card">
-            <a class="card-link" href={post.url}>
-              <div class="card-head">
-                <p class="card-title">{post.frontmatter.title}</p>
+            return (
+              <li class="card">
+                <a class="card-link" href={post.url}>
+                  <div class="card-head">
+                    <p class="card-title">{post.frontmatter?.title}</p>
 
-                <p class="card-meta">
-                  <span class="badge badge-month is-active">{month}</span>
+                    <p class="card-meta">
+                      <span class="badge badge-month is-active">{month}</span>
 
-                  {cats.map((c) => (
-                    <span
-                      class={`badge badge-${slugifyClass(c)} badge-auto`}
-                      style={`--h:${categoryHue(c)}`}
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </p>
-              </div>
+                      {cats.map((c) => (
+                        <span
+                          class={`badge badge-${slugifyClass(c)} badge-auto`}
+                          style={`--h:${categoryHue(c)}`}
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
 
-              {excerpt && <p class="card-excerpt">{excerpt}</p>}
-            </a>
-          </li>
-        );
-      })
-    )}
-  </ul>
+                  {excerpt && <p class="card-excerpt">{excerpt}</p>}
+                </a>
+              </li>
+            );
+          })
+        )}
+      </ul>
 
-  <p><a href={`${base}blog/`}>← all</a></p>
-  <p><a href={base}>← Home</a></p>
+      <p><a href={`${base}blog/`}>← all</a></p>
+      <p><a href={base}>← Home</a></p>
+    </>
+  )}
 </BaseLayout>
