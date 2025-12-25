@@ -1,6 +1,27 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
 const base = import.meta.env.BASE_URL;
+
+const isDateOnly = (raw) => typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw);
+
+const formatDate = (raw) => {
+  if (isDateOnly(raw)) return raw;
+  const d = raw ? new Date(raw) : null;
+  if (!d || Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+};
+
+// 直近記事（blog/*.md）
+const posts = await Astro.glob("./blog/*.md");
+
+const recentPosts = [...posts]
+  .sort((a, b) => {
+    const da = new Date(a.frontmatter?.date ?? 0);
+    const db = new Date(b.frontmatter?.date ?? 0);
+    return db - da;
+  })
+  .slice(0, 5);
 ---
 
 <BaseLayout title="404" description="ページが見つかりませんでした">
@@ -16,5 +37,29 @@ const base = import.meta.env.BASE_URL;
     <a href={base}>← Home</a>
     <span class="sep" aria-hidden="true"> / </span>
     <a href={`${base}blog/`}>Blog</a>
+    <span class="sep" aria-hidden="true"> / </span>
+    <a href={`${base}search/`}>Search</a>
   </p>
+
+  {recentPosts.length > 0 && (
+    <>
+      <h2>最近の投稿</h2>
+
+      <ul class="card-list">
+        {recentPosts.map((post) => (
+          <li class="card">
+            <a class="card-link" href={post.url}>
+              <div class="card-head">
+                <p class="card-title">{post.frontmatter?.title ?? "Untitled"}</p>
+
+                <p class="card-meta">
+                  {formatDate(post.frontmatter?.date)}
+                </p>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
 </BaseLayout>
