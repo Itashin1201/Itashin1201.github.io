@@ -1,27 +1,30 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { slugifyClass, categoryHue } from "../../lib/blog.js";
+import {
+  formatDate,
+  normalizeCategory,
+  slugifyClass,
+  categoryHue,
+} from "../../lib/blog.js";
 
 const base = import.meta.env.BASE_URL;
 
-const formatDate = (d) =>
-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
-
-const getMonth = (d) => formatDate(d).slice(0, 7);
+const getMonth = (d) => formatDate(d ?? Date.now()).slice(0, 7);
 
 const posts = await Astro.glob("./*.md");
 
 posts.sort((a, b) => {
-  const da = new Date(a.frontmatter.date ?? 0);
-  const db = new Date(b.frontmatter.date ?? 0);
+  const da = new Date(a.frontmatter?.date ?? 0);
+  const db = new Date(b.frontmatter?.date ?? 0);
   return db - da;
 });
 
-const normalizeCategory = (cat) => {
-  if (!cat) return [];
-  const arr = Array.isArray(cat) ? cat : [cat];
-  return arr.map((c) => String(c).trim()).filter(Boolean);
-};
+// カテゴリ一覧（表示用の元文字列を保持）
+const categories = [
+  ...new Set(
+    posts.flatMap((p) => normalizeCategory(p.frontmatter?.category))
+  ),
+].sort((a, b) => a.localeCompare(b, "ja"));
 
 const makeExcerpt = async (post) => {
   if (typeof post.frontmatter?.excerpt === "string") {
@@ -66,6 +69,17 @@ const makeExcerpt = async (post) => {
 
   <p class="sub">
     <span class="is-active">all</span>
+
+    {categories.map((c) => {
+      const slug = slugifyClass(c);
+      return (
+        <>
+          {" / "}
+          <a href={`${base}blog/category/${slug}/`}>{c}</a>
+        </>
+      );
+    })}
+
     {" / "}
     <a href={`${base}search/`}>search</a>
   </p>
@@ -74,14 +88,14 @@ const makeExcerpt = async (post) => {
     {await Promise.all(
       posts.map(async (post) => {
         const excerpt = await makeExcerpt(post);
-        const month = getMonth(post.frontmatter.date);
-        const cats = normalizeCategory(post.frontmatter.category);
+        const month = getMonth(post.frontmatter?.date);
+        const cats = normalizeCategory(post.frontmatter?.category);
 
         return (
           <li class="card">
             <a class="card-link" href={post.url}>
               <div class="card-head">
-                <p class="card-title">{post.frontmatter.title}</p>
+                <p class="card-title">{post.frontmatter?.title}</p>
 
                 <p class="card-meta">
                   <span class="badge badge-month">{month}</span>
