@@ -74,7 +74,14 @@ const isBlogChild =
   </head>
 
   <body>
-    <button id="theme-toggle" aria-label="Toggle theme">dark</button>
+    <button
+      id="theme-toggle"
+      type="button"
+      aria-label="Toggle theme"
+      aria-pressed="false"
+    >
+      dark
+    </button>
 
     <main class="container">
       {!isHome && (
@@ -133,15 +140,9 @@ const isBlogChild =
 
     <!-- ★ フッター（統合版） -->
     <footer class="site-footer">
-      <div class="copyright">
-        © {new Date().getFullYear()} itashin
-      </div>
+      <div class="copyright">© {new Date().getFullYear()} itashin</div>
 
-      {lastUpdated && (
-        <div class="last-updated">
-          最終更新：{lastUpdated}
-        </div>
-      )}
+      {lastUpdated && <div class="last-updated">最終更新：{lastUpdated}</div>}
     </footer>
 
     <script>
@@ -151,6 +152,8 @@ const isBlogChild =
       const apply = (theme) => {
         document.documentElement.dataset.theme = theme;
         btn.textContent = theme === "dark" ? "light" : "dark";
+        // ★ a11y: 押下状態（ここでは dark を ON とみなす）
+        btn.setAttribute("aria-pressed", String(theme === "dark"));
       };
 
       const saved = localStorage.getItem(key);
