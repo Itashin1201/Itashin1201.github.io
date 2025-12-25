@@ -6,7 +6,7 @@ const index = await buildSearchIndex();
 ---
 
 <BaseLayout title="Search" description="記事検索">
-  <section class="search">
+  <section class="search-container">
     <h1 class="search-title">検索</h1>
 
     <input
@@ -15,10 +15,11 @@ const index = await buildSearchIndex();
       type="search"
       placeholder="キーワードを入力（スペース区切りでAND検索）"
       autocomplete="off"
+      spellcheck="false"
     />
 
     <!-- ★ 件数表示 -->
-    <p id="search-count" class="search-count"></p>
+    <p id="search-count" class="search-stats"></p>
 
     <ul id="search-results" class="search-results"></ul>
   </section>
@@ -30,23 +31,37 @@ const index = await buildSearchIndex();
 
     const normalize = (s) => (s ?? "").toLowerCase();
 
-    const escapeRegExp = (s) =>
-      s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    const highlight = (text, q) => {
-      if (!q) return text;
-      const re = new RegExp(`(${escapeRegExp(q)})`, "gi");
-      return String(text ?? "").replace(re, "<mark>$1</mark>");
+    const escapeHtml = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    // 複数ワードを順にハイライト（AND検索でも見やすい）
+    const highlightWords = (text, words) => {
+      let out = escapeHtml(text ?? "");
+      for (const w of words ?? []) {
+        if (!w) continue;
+        const re = new RegExp(`(${escapeRegExp(w)})`, "gi");
+        out = out.replace(re, "<mark>$1</mark>");
+      }
+      return out;
     };
 
     const makeSnippet = (content, q, len = 40) => {
       const c = String(content ?? "");
-      const idx = c.toLowerCase().indexOf(q.toLowerCase());
+      const idx = c.toLowerCase().indexOf(String(q ?? "").toLowerCase());
       if (idx === -1) return "";
 
       const start = Math.max(0, idx - len);
-      const end = Math.min(c.length, idx + q.length + len);
-      return highlight(c.slice(start, end), q);
+      const end = Math.min(c.length, idx + String(q ?? "").length + len);
+
+      // snippet は単語1つを強調（見やすさ優先）
+      return highlightWords(c.slice(start, end), [q]);
     };
 
     const toTime = (d) => {
@@ -85,7 +100,7 @@ const index = await buildSearchIndex();
       // ★ スペース区切り AND 検索
       const words = raw
         .split(/\s+/)
-        .map(normalize)
+        .map((w) => normalize(w.trim()))
         .filter(Boolean);
 
       const hits = [];
@@ -136,52 +151,50 @@ const index = await buildSearchIndex();
 
       // ★ 描画
       for (const h of hits) {
-        const snippetWord = words.find((w) =>
-          normalize(h.content).includes(w)
-        );
-        const snippet = snippetWord
-          ? makeSnippet(h.content, snippetWord)
-          : "";
+        const snippetWord = words.find((w) => normalize(h.content).includes(w));
+        const snippet = snippetWord ? makeSnippet(h.content, snippetWord) : "";
 
         const li = document.createElement("li");
         li.className = "search-item";
+
+        const metaParts = [];
+
+        if (h.date) {
+          metaParts.push(
+            `<span class="search-item-date">${escapeHtml(formatDate(h.date))}</span>`
+          );
+        }
+
+        if (h.categories.length) {
+          metaParts.push(
+            `<span class="search-item-categories">${
+              h.categories
+                .map((c) => `<span class="search-category">${escapeHtml(c)}</span>`)
+                .join("")
+            }</span>`
+          );
+        }
+
         li.innerHTML = `
-          <a href="${h.url}" class="search-link">
-            <div class="search-item-title">
-              ${highlight(h.title, raw)}
-            </div>
-
-            <div class="search-item-meta">
-              ${
-                h.date
-                  ? `<span class="search-item-date">${formatDate(h.date)}</span>`
-                  : ""
-              }
-              ${
-                h.categories.length
-                  ? `<span class="search-item-categories">
-                      ${h.categories
-                        .map((c) => `<span class="search-category">${c}</span>`)
-                        .join("")}
-                    </span>`
-                  : ""
-              }
-            </div>
-
-            ${
-              h.description
-                ? `<div class="search-item-desc">
-                    ${highlight(h.description, raw)}
-                  </div>`
-                : ""
-            }
-            ${
-              snippet
-                ? `<div class="search-item-snippet">…${snippet}…</div>`
-                : ""
-            }
+          <a href="${h.url}" class="search-item-title">
+            ${highlightWords(h.title, words)}
           </a>
+
+          ${metaParts.length ? `<div class="search-item-meta">${metaParts.join(" ")}</div>` : ""}
+
+          ${
+            h.description
+              ? `<div class="search-item-desc">${highlightWords(h.description, words)}</div>`
+              : ""
+          }
+
+          ${
+            snippet
+              ? `<div class="search-item-excerpt">…${snippet}…</div>`
+              : ""
+          }
         `;
+
         results.appendChild(li);
       }
 
