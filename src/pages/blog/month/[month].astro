@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { slugifyClass } from "../../../lib/blog.js";
+import { slugifyClass, categoryHue } from "../../../lib/blog.js";
+
+const base = import.meta.env.BASE_URL;
 
 /**
  * 日付フォーマット（YYYY-MM-DD）
@@ -32,9 +34,6 @@ export async function getStaticPaths() {
 
 // ===== パラメータ取得 =====
 const { month } = Astro.params;
-
-// ===== ベースURL =====
-const base = import.meta.env.BASE_URL;
 
 // ===== 記事取得 =====
 const posts = await Astro.glob("../*.md");
@@ -98,6 +97,12 @@ const makeExcerpt = async (post) => {
     .replace(/\s+/g, " ")
     .trim();
 };
+
+const normalizeCategory = (cat) => {
+  if (!cat) return [];
+  const arr = Array.isArray(cat) ? cat : [cat];
+  return arr.map((c) => String(c).trim()).filter(Boolean);
+};
 ---
 
 <BaseLayout title={`Blog / ${month}`}>
@@ -113,12 +118,7 @@ const makeExcerpt = async (post) => {
     {await Promise.all(
       filteredPosts.map(async (post) => {
         const excerpt = await makeExcerpt(post);
-
-        const cats = Array.isArray(post.frontmatter.category)
-          ? post.frontmatter.category
-          : [post.frontmatter.category];
-
-        const postCategories = cats.filter(Boolean).map((c) => String(c));
+        const cats = normalizeCategory(post.frontmatter.category);
 
         return (
           <li class="card">
@@ -129,8 +129,13 @@ const makeExcerpt = async (post) => {
                 <p class="card-meta">
                   <span class="badge badge-month is-active">{month}</span>
 
-                  {postCategories.map((c) => (
-                    <span class={`badge badge-${slugifyClass(c)}`}>{c}</span>
+                  {cats.map((c) => (
+                    <span
+                      class={`badge badge-${slugifyClass(c)} badge-auto`}
+                      style={`--h:${categoryHue(c)}`}
+                    >
+                      {c}
+                    </span>
                   ))}
                 </p>
               </div>
