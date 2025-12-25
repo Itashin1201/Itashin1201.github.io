@@ -1,47 +1,70 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { slugifyClass, categoryHue } from "../../../lib/blog.js";
+import {
+  formatDate,
+  normalizeCategory,
+  slugifyClass,
+  categoryHue,
+} from "../../../lib/blog.js";
 
 const base = import.meta.env.BASE_URL;
 
-const formatDate = (d) =>
-  new Date(d ?? Date.now()).toISOString().slice(0, 10);
-
-const normalizeCategory = (cat) => {
-  if (!cat) return [];
-  const arr = Array.isArray(cat) ? cat : [cat];
-  return arr.map((c) => String(c).trim()).filter(Boolean);
-};
-
+/**
+ * ===== 静的パス生成 =====
+ * blog/*.md の category から一覧を作る
+ * （slugifyClass を URL パラメータにして安全に）
+ */
 export async function getStaticPaths() {
   const posts = await Astro.glob("../*.md");
 
-  const cats = new Set();
+  // slug -> 表示名（元カテゴリ文字列）
+  const map = new Map();
+
   for (const p of posts) {
-    const arr = normalizeCategory(p.frontmatter?.category);
-    for (const c of arr) cats.add(slugifyClass(c));
+    for (const c of normalizeCategory(p.frontmatter?.category)) {
+      const slug = slugifyClass(c);
+      if (!map.has(slug)) map.set(slug, c);
+    }
   }
 
-  return [...cats].map((category) => ({
-    params: { category },
+  return [...map.entries()].map(([slug, label]) => ({
+    params: { category: slug },
+    props: { categoryLabel: label },
   }));
 }
 
+// ===== パラメータ取得 =====
 const { category } = Astro.params;
+const { categoryLabel } = Astro.props;
 
+// ===== 記事取得 =====
 const posts = await Astro.glob("../*.md");
 
-const filteredPosts = posts.filter((p) => {
-  const arr = normalizeCategory(p.frontmatter?.category);
-  return arr.some((c) => slugifyClass(c) === category);
-});
+/**
+ * ===== category でフィルタ =====
+ */
+const filteredPosts = posts.filter((p) =>
+  normalizeCategory(p.frontmatter?.category).some(
+    (c) => slugifyClass(c) === String(category)
+  )
+);
 
+/**
+ * ===== 日付順にソート =====
+ */
 filteredPosts.sort((a, b) => {
   const da = new Date(a.frontmatter.date ?? 0);
   const db = new Date(b.frontmatter.date ?? 0);
   return db - da;
 });
 
+/**
+ * ===== 抜粋生成（一覧用） =====
+ *
+ * 優先順位:
+ * 1. frontmatter.excerpt
+ * 2. lead を除外した本文1行目
+ */
 const makeExcerpt = async (post) => {
   if (typeof post.frontmatter?.excerpt === "string") {
     return post.frontmatter.excerpt.trim();
@@ -52,7 +75,10 @@ const makeExcerpt = async (post) => {
   const raw = await post.rawContent();
   if (!raw) return "";
 
+  // frontmatter 除去
   const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
+
+  // lead ブロック除去
   const withoutLead = body.replace(
     /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
     ""
@@ -75,29 +101,22 @@ const makeExcerpt = async (post) => {
     .replace(/\s+/g, " ")
     .trim();
 };
-
-const displayCategory = (() => {
-  const s = String(category ?? "");
-  if (s.startsWith("tag-")) return "tag";
-  return s;
-})();
 ---
 
-<BaseLayout title={`Blog / ${displayCategory}`}>
+<BaseLayout title={`Blog / ${categoryLabel ?? category}`}>
   <h1>Blog</h1>
 
   <p class="sub">
     <a href={`${base}blog/`}>all</a>
     {" / "}
-    <span class="is-active">{displayCategory}</span>
+    <span class="is-active">{categoryLabel ?? category}</span>
   </p>
 
   <ul class="card-list">
     {await Promise.all(
       filteredPosts.map(async (post) => {
         const excerpt = await makeExcerpt(post);
-
-        const cats = normalizeCategory(post.frontmatter.category);
+        const cats = normalizeCategory(post.frontmatter?.category);
 
         return (
           <li class="card">
@@ -106,11 +125,10 @@ const displayCategory = (() => {
                 <p class="card-title">{post.frontmatter.title}</p>
 
                 <p class="card-meta">
+                  {formatDate(post.frontmatter.date)}
                   {cats.map((c) => (
                     <span
-                      class={`badge badge-${slugifyClass(c)} badge-auto ${
-                        slugifyClass(c) === category ? "is-active" : ""
-                      }`}
+                      class={`badge badge-${slugifyClass(c)} badge-auto`}
                       style={`--h:${categoryHue(c)}`}
                     >
                       {c}
