@@ -21,9 +21,7 @@ posts.sort((a, b) => {
 
 // カテゴリ一覧（表示用の元文字列を保持）
 const categories = [
-  ...new Set(
-    posts.flatMap((p) => normalizeCategory(p.frontmatter?.category))
-  ),
+  ...new Set(posts.flatMap((p) => normalizeCategory(p.frontmatter?.category))),
 ].sort((a, b) => a.localeCompare(b, "ja"));
 
 const makeExcerpt = async (post) => {
@@ -79,9 +77,6 @@ const makeExcerpt = async (post) => {
         </>
       );
     })}
-
-    {" / "}
-    <a href={`${base}search/`}>search</a>
   </p>
 
   <ul class="card-list">
