@@ -1,5 +1,5 @@
 export const SITE_NAME = "愛と幽相";
-export const SITE_DESCRIPTION = "ただのブログ。";
+export const SITE_DESCRIPTION = "断片を書き留める場所。";
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -75,6 +75,19 @@ export function slugifyClass(input) {
     h = Math.imul(h, 16777619);
   }
   return `tag-${(h >>> 0).toString(16)}`;
+}
+
+export function categoryHue(input) {
+  // カテゴリ文字列から安定した色相(0-359)を生成（FNV-1a 32bit）
+  const raw = String(input ?? "").trim();
+  if (!raw) return 210;
+
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 360;
 }
 
 export async function makeExcerpt(post, { maxLength = 140 } = {}) {
