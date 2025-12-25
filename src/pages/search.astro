@@ -6,6 +6,10 @@ const index = await buildSearchIndex();
 ---
 
 <BaseLayout title="Search" description="記事検索">
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
   <section class="search-container">
     <h1 class="search-title">検索</h1>
 
@@ -18,7 +22,6 @@ const index = await buildSearchIndex();
       spellcheck="false"
     />
 
-    <!-- ★ 件数表示 -->
     <p id="search-count" class="search-stats"></p>
 
     <ul id="search-results" class="search-results"></ul>
@@ -41,7 +44,6 @@ const index = await buildSearchIndex();
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 
-    // 複数ワードを順にハイライト（AND検索でも見やすい）
     const highlightWords = (text, words) => {
       let out = escapeHtml(text ?? "");
       for (const w of words ?? []) {
@@ -60,7 +62,6 @@ const index = await buildSearchIndex();
       const start = Math.max(0, idx - len);
       const end = Math.min(c.length, idx + String(q ?? "").length + len);
 
-      // snippet は単語1つを強調（見やすさ優先）
       return highlightWords(c.slice(start, end), [q]);
     };
 
@@ -92,12 +93,10 @@ const index = await buildSearchIndex();
 
       if (!raw) return;
 
-      // ★ URL に検索語を反映
       const params = new URLSearchParams(window.location.search);
       params.set("q", raw);
       history.replaceState(null, "", `?${params.toString()}`);
 
-      // ★ スペース区切り AND 検索
       const words = raw
         .split(/\s+/)
         .map((w) => normalize(w.trim()))
@@ -135,10 +134,8 @@ const index = await buildSearchIndex();
         });
       }
 
-      // ★ 日付順ソート（新しい順）
       hits.sort((a, b) => toTime(b.date) - toTime(a.date));
 
-      // ★ 0件ヒット時
       if (hits.length === 0) {
         countEl.textContent = "0件ヒット";
 
@@ -149,7 +146,6 @@ const index = await buildSearchIndex();
         return;
       }
 
-      // ★ 描画
       for (const h of hits) {
         const snippetWord = words.find((w) => normalize(h.content).includes(w));
         const snippet = snippetWord ? makeSnippet(h.content, snippetWord) : "";
@@ -161,7 +157,9 @@ const index = await buildSearchIndex();
 
         if (h.date) {
           metaParts.push(
-            `<span class="search-item-date">${escapeHtml(formatDate(h.date))}</span>`
+            `<span class="search-item-date">${escapeHtml(
+              formatDate(h.date)
+            )}</span>`
           );
         }
 
@@ -169,7 +167,10 @@ const index = await buildSearchIndex();
           metaParts.push(
             `<span class="search-item-categories">${
               h.categories
-                .map((c) => `<span class="search-category">${escapeHtml(c)}</span>`)
+                .map(
+                  (c) =>
+                    `<span class="search-category">${escapeHtml(c)}</span>`
+                )
                 .join("")
             }</span>`
           );
@@ -180,11 +181,18 @@ const index = await buildSearchIndex();
             ${highlightWords(h.title, words)}
           </a>
 
-          ${metaParts.length ? `<div class="search-item-meta">${metaParts.join(" ")}</div>` : ""}
+          ${
+            metaParts.length
+              ? `<div class="search-item-meta">${metaParts.join(" ")}</div>`
+              : ""
+          }
 
           ${
             h.description
-              ? `<div class="search-item-desc">${highlightWords(h.description, words)}</div>`
+              ? `<div class="search-item-desc">${highlightWords(
+                  h.description,
+                  words
+                )}</div>`
               : ""
           }
 
@@ -201,7 +209,6 @@ const index = await buildSearchIndex();
       countEl.textContent = `${hits.length}件ヒット`;
     };
 
-    // ★ 入力イベント
     input.addEventListener("input", () => {
       const raw = input.value.trim();
 
@@ -218,7 +225,6 @@ const index = await buildSearchIndex();
       runSearch(raw);
     });
 
-    // ★ URL クエリから初期検索
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("q");
 
