@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { slugifyClass } from "../../../lib/blog.js";
 
 /**
  * 日付フォーマット（YYYY-MM-DD）
@@ -22,7 +23,7 @@ export async function getStaticPaths() {
         .flatMap((c) => (Array.isArray(c) ? c : [c]))
         .map((c) => String(c))
     ),
-  ];
+  ].sort((a, b) => a.localeCompare(b, "ja"));
 
   return categories.map((category) => ({
     params: { category },
@@ -31,6 +32,9 @@ export async function getStaticPaths() {
 
 // ===== パラメータ取得 =====
 const { category } = Astro.params;
+
+// ===== ベースURL =====
+const base = import.meta.env.BASE_URL;
 
 // ===== 記事取得 =====
 const posts = await Astro.glob("../*.md");
@@ -46,7 +50,7 @@ const allCategories = [
       .flatMap((c) => (Array.isArray(c) ? c : [c]))
       .map((c) => String(c))
   ),
-].sort();
+].sort((a, b) => a.localeCompare(b, "ja"));
 
 /**
  * ===== category でフィルタ =====
@@ -82,7 +86,7 @@ const makeExcerpt = async (post) => {
   // frontmatter 除去
   const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
 
-  // lead ブロック除去
+  // lead ブロックを丸ごと除去
   const withoutLead = body.replace(
     /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
     ""
@@ -105,17 +109,27 @@ const makeExcerpt = async (post) => {
     .replace(/\s+/g, " ")
     .trim();
 };
+
+const categoryLabel = String(category ?? "");
+const categoryClass = slugifyClass(categoryLabel);
 ---
 
-<BaseLayout title={`Blog / ${category}`}>
+<BaseLayout title={`Blog / ${categoryLabel}`}>
   <h1>Blog</h1>
 
- <p class="sub">
-  <a href="/blog/">all</a>
-  {" / "}
-  <span class="is-active">{category}</span>
-</p>
-
+  <p class="sub">
+    <a href={`${base}blog/`}>all</a>
+    {allCategories.map((c) => (
+      <span>
+        {" / "}
+        {String(c) === categoryLabel ? (
+          <span class="is-active">{c}</span>
+        ) : (
+          <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
+        )}
+      </span>
+    ))}
+  </p>
 
   <ul class="card-list">
     {await Promise.all(
@@ -132,22 +146,17 @@ const makeExcerpt = async (post) => {
             <li class="card">
               <a class="card-link" href={post.url}>
                 <div class="card-head">
-                  <p class="card-title">
-                    {post.frontmatter.title}
-                  </p>
+                  <p class="card-title">{post.frontmatter.title}</p>
 
                   <p class="card-meta">
-  {formatDate(post.frontmatter.date)}
-  <span class={`badge badge-${category}`}>
-    {String(category)}
-  </span>
-</p>
-
+                    {formatDate(post.frontmatter.date)}
+                    <span class={`badge badge-${categoryClass}`}>
+                      {categoryLabel}
+                    </span>
+                  </p>
                 </div>
 
-                {excerpt && (
-                  <p class="card-excerpt">{excerpt}</p>
-                )}
+                {excerpt && <p class="card-excerpt">{excerpt}</p>}
               </a>
             </li>
           );
@@ -155,9 +164,6 @@ const makeExcerpt = async (post) => {
     )}
   </ul>
 
-  <p><a href="/blog/">← all</a></p>
-  <p><a href="/">← Home</a></p>
+  <p><a href={`${base}blog/`}>← all</a></p>
+  <p><a href={base}>← Home</a></p>
 </BaseLayout>
-
-
-
