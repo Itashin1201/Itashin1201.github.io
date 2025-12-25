@@ -29,13 +29,14 @@ const site = Astro.site ?? new URL(siteUrl);
 const pageUrl = new URL(Astro.url.pathname, site).toString();
 const canonicalUrl = pageUrl;
 
-const ogImageUrl = new URL(`${import.meta.env.BASE_URL}og.png`, site).toString();
+const base = import.meta.env.BASE_URL;
+
+const ogImageUrl = new URL(`${base}og.png`, site).toString();
 const ogType = showDate && isoDate ? "article" : "website";
 
 const lastUpdated = await getLastUpdated();
 
 // ===== ナビ制御 =====
-const base = import.meta.env.BASE_URL;
 const normalizePath = (p) => (p.endsWith("/") ? p : `${p}/`);
 const currentPath = normalizePath(Astro.url.pathname);
 
@@ -57,6 +58,14 @@ const isBlogChild =
 
     <!-- Canonical -->
     <link rel="canonical" href={canonicalUrl} />
+
+    <!-- RSS -->
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="愛と幽相 RSS"
+      href={`${base}rss.xml`}
+    />
 
     <!-- Open Graph -->
     <meta property="og:site_name" content="愛と幽相" />
@@ -80,12 +89,14 @@ const isBlogChild =
     <meta name="twitter:image" content={ogImageUrl} />
     <meta name="twitter:image:alt" content={title} />
 
-    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.png`} />
+    <link rel="icon" href={`${base}favicon.png`} />
     <slot name="head" />
 
+    <!-- テーマ：描画前に data-theme をセット（ちらつき防止） -->
     <script>
       (() => {
-        const saved = localStorage.getItem("theme");
+        const key = "theme";
+        const saved = localStorage.getItem(key);
         const prefersDark = window
           .matchMedia("(prefers-color-scheme: dark)")
           .matches;
@@ -165,28 +176,38 @@ const isBlogChild =
       {lastUpdated && <div class="last-updated">最終更新：{lastUpdated}</div>}
     </footer>
 
+    <!-- テーマ：ボタン表示だけ整える（headの設定を尊重） -->
     <script>
       const key = "theme";
       const btn = document.getElementById("theme-toggle");
 
-      const apply = (theme) => {
-        document.documentElement.dataset.theme = theme;
+      const setButton = (theme) => {
         btn.textContent = theme === "dark" ? "light" : "dark";
         btn.setAttribute("aria-pressed", String(theme === "dark"));
       };
 
-      const saved = localStorage.getItem(key);
-      const prefersDark = window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .matches;
-      const initial = saved ?? (prefersDark ? "dark" : "light");
-      apply(initial);
+      const getInitialTheme = () => {
+        const current = document.documentElement.dataset.theme;
+        if (current === "dark" || current === "light") return current;
+
+        const saved = localStorage.getItem(key);
+        if (saved === "dark" || saved === "light") return saved;
+
+        const prefersDark = window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .matches;
+        return prefersDark ? "dark" : "light";
+      };
+
+      let theme = getInitialTheme();
+      document.documentElement.dataset.theme = theme;
+      setButton(theme);
 
       btn.addEventListener("click", () => {
-        const next =
-          document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-        localStorage.setItem(key, next);
-        apply(next);
+        theme = theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem(key, theme);
+        setButton(theme);
       });
     </script>
   </body>
