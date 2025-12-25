@@ -59,6 +59,7 @@ const isBlogChild =
     <meta name="twitter:image" content={ogImageUrl} />
 
     <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.png`} />
+    <slot name="head" />
 
     <script>
       (() => {
