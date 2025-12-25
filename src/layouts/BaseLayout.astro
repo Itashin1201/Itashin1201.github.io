@@ -242,6 +242,9 @@ const isBlogChild =
 
       const applyExternalLinkPolicy = () => {
         document.querySelectorAll("a[href]").forEach((a) => {
+          // ★ 例外：data-same-tab が付いてたら何もしない（今までの仕様は維持）
+          if (a.hasAttribute("data-same-tab")) return;
+
           const href = (a.getAttribute("href") ?? "").trim();
           if (!href) return;
           if (isAnchorOnly(href)) return;
