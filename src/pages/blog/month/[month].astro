@@ -1,27 +1,12 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { slugifyClass } from "../../../lib/blog.js";
 
 /**
  * 日付フォーマット（YYYY-MM-DD）
  */
 const formatDate = (d) =>
   new Date(d ?? Date.now()).toISOString().slice(0, 10);
-
-/**
- * CSSクラス用にカテゴリ文字列を安全化
- * - 空白はハイフンへ
- * - 記号は除去
- * - 文字/数字/ハイフン（＋Unicode文字）だけ残す
- */
-const slugifyClass = (input) => {
-  const s = String(input ?? "").trim().toLowerCase();
-  const out = s
-    .replace(/\s+/g, "-")
-    .replace(/[^\p{L}\p{N}-]/gu, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return out || "uncategorized";
-};
 
 /**
  * ===== 静的パス生成 =====
@@ -129,8 +114,11 @@ const makeExcerpt = async (post) => {
       filteredPosts.map(async (post) => {
         const excerpt = await makeExcerpt(post);
 
-        const categoryLabel = String(post.frontmatter.category ?? "");
-        const categoryClass = slugifyClass(categoryLabel);
+        const cats = Array.isArray(post.frontmatter.category)
+          ? post.frontmatter.category
+          : [post.frontmatter.category];
+
+        const postCategories = cats.filter(Boolean).map((c) => String(c));
 
         return (
           <li class="card">
@@ -139,21 +127,11 @@ const makeExcerpt = async (post) => {
                 <p class="card-title">{post.frontmatter.title}</p>
 
                 <p class="card-meta">
-                  <span
-                    class={`badge ${
-                      formatDate(post.frontmatter.date).startsWith(month)
-                        ? "badge-month is-active"
-                        : "badge-month"
-                    }`}
-                  >
-                    {month}
-                  </span>
+                  <span class="badge badge-month is-active">{month}</span>
 
-                  {categoryLabel && (
-                    <span class={`badge badge-${categoryClass}`}>
-                      {categoryLabel}
-                    </span>
-                  )}
+                  {postCategories.map((c) => (
+                    <span class={`badge badge-${slugifyClass(c)}`}>{c}</span>
+                  ))}
                 </p>
               </div>
 
