@@ -1,5 +1,5 @@
 export const SITE_NAME = "愛と幽相";
-export const SITE_DESCRIPTION = "断片を書き留める場所。";
+export const SITE_DESCRIPTION = "ただのブログ。";
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
