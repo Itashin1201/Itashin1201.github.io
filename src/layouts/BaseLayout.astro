@@ -123,8 +123,6 @@ const isBlogChild =
             <>
               <a href={base}>Home</a>
               <span class="sep"> / </span>
-              <a href={`${base}blog/`}>Blog</a>
-              <span class="sep"> / </span>
               <a href={`${base}search/`}>Search</a>
             </>
           ) : isBlogChild ? (
@@ -251,7 +249,6 @@ const isBlogChild =
             a.setAttribute("target", "_blank");
             normalizeRel(a);
           } else {
-            // 内部リンクでも手動で target=_blank の場合は rel を安全化
             if (a.getAttribute("target") === "_blank") {
               normalizeRel(a);
             }
