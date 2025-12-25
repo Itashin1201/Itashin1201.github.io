@@ -2,7 +2,7 @@
 layout: ../../layouts/BaseLayout.astro
 title: test
 date: 2025-12-25
-category: tech
+category: memo
 showDate: true
 ---
 
