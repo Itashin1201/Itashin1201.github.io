@@ -55,13 +55,18 @@
   background: rgba(255,255,255,0.08);
 }
 
-/* 自動配色（カテゴリ文字列→hue） */
-.badge-auto{
-  color: hsl(var(--h, 210), 55%, 35%);
+/* 自動配色（カテゴリ文字列→hue）
+   .badge からの上書きを確実にするため .badge.badge-auto にしている */
+.badge.badge-auto{
+  color: hsl(calc(var(--h, 210) * 1deg), 55%, 35%);
+  border-color: hsla(calc(var(--h, 210) * 1deg), 55%, 45%, 0.25);
+  background: hsla(calc(var(--h, 210) * 1deg), 55%, 60%, 0.10);
 }
 
-[data-theme="dark"] .badge-auto{
-  color: hsl(var(--h, 210), 55%, 70%);
+[data-theme="dark"] .badge.badge-auto{
+  color: hsl(calc(var(--h, 210) * 1deg), 55%, 70%);
+  border-color: hsla(calc(var(--h, 210) * 1deg), 55%, 65%, 0.28);
+  background: hsla(calc(var(--h, 210) * 1deg), 55%, 60%, 0.14);
 }
 
 /* “中立色”にしたいカテゴリは上書き */
