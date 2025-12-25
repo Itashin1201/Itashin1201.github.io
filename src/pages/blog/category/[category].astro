@@ -1,78 +1,47 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { slugifyClass } from "../../../lib/blog.js";
+import { slugifyClass, categoryHue } from "../../../lib/blog.js";
 
-/**
- * 日付フォーマット（YYYY-MM-DD）
- */
+const base = import.meta.env.BASE_URL;
+
 const formatDate = (d) =>
   new Date(d ?? Date.now()).toISOString().slice(0, 10);
 
-/**
- * ===== 静的パス生成 =====
- * blog/*.md の category から一覧を作る
- */
+const normalizeCategory = (cat) => {
+  if (!cat) return [];
+  const arr = Array.isArray(cat) ? cat : [cat];
+  return arr.map((c) => String(c).trim()).filter(Boolean);
+};
+
 export async function getStaticPaths() {
   const posts = await Astro.glob("../*.md");
 
-  const categories = [
-    ...new Set(
-      posts
-        .map((p) => p.frontmatter.category)
-        .filter(Boolean)
-        .flatMap((c) => (Array.isArray(c) ? c : [c]))
-        .map((c) => String(c))
-    ),
-  ].sort((a, b) => a.localeCompare(b, "ja"));
+  const cats = new Set();
+  for (const p of posts) {
+    const arr = normalizeCategory(p.frontmatter?.category);
+    for (const c of arr) cats.add(slugifyClass(c));
+  }
 
-  return categories.map((category) => ({
+  return [...cats].map((category) => ({
     params: { category },
   }));
 }
 
-// ===== パラメータ取得 =====
 const { category } = Astro.params;
 
-// ===== ベースURL =====
-const base = import.meta.env.BASE_URL;
-
-// ===== 記事取得 =====
 const posts = await Astro.glob("../*.md");
 
-/**
- * ===== 全カテゴリ一覧（ナビ用） =====
- */
-const allCategories = [
-  ...new Set(
-    posts
-      .map((p) => p.frontmatter.category)
-      .filter(Boolean)
-      .flatMap((c) => (Array.isArray(c) ? c : [c]))
-      .map((c) => String(c))
-  ),
-].sort((a, b) => a.localeCompare(b, "ja"));
-
-/**
- * ===== category でフィルタ =====
- */
 const filteredPosts = posts.filter((p) => {
-  const cats = Array.isArray(p.frontmatter.category)
-    ? p.frontmatter.category
-    : [p.frontmatter.category];
-
-  return cats
-    .filter(Boolean)
-    .map((c) => String(c))
-    .includes(String(category));
+  const arr = normalizeCategory(p.frontmatter?.category);
+  return arr.some((c) => slugifyClass(c) === category);
 });
 
-/**
- * ===== 抜粋生成（一覧用） =====
- *
- * 優先順位:
- * 1. frontmatter.excerpt
- * 2. lead を除外した本文1行目
- */
+filteredPosts.sort((a, b) => {
+  const da = new Date(a.frontmatter.date ?? 0);
+  const db = new Date(b.frontmatter.date ?? 0);
+  return db - da;
+});
+
 const makeExcerpt = async (post) => {
   if (typeof post.frontmatter?.excerpt === "string") {
     return post.frontmatter.excerpt.trim();
@@ -83,10 +52,7 @@ const makeExcerpt = async (post) => {
   const raw = await post.rawContent();
   if (!raw) return "";
 
-  // frontmatter 除去
   const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
-
-  // lead ブロックを丸ごと除去
   const withoutLead = body.replace(
     /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
     ""
@@ -110,57 +76,54 @@ const makeExcerpt = async (post) => {
     .trim();
 };
 
-const categoryLabel = String(category ?? "");
-const categoryClass = slugifyClass(categoryLabel);
+const displayCategory = (() => {
+  const s = String(category ?? "");
+  if (s.startsWith("tag-")) return "tag";
+  return s;
+})();
 ---
 
-<BaseLayout title={`Blog / ${categoryLabel}`}>
+<BaseLayout title={`Blog / ${displayCategory}`}>
   <h1>Blog</h1>
 
   <p class="sub">
     <a href={`${base}blog/`}>all</a>
-    {allCategories.map((c) => (
-      <span>
-        {" / "}
-        {String(c) === categoryLabel ? (
-          <span class="is-active">{c}</span>
-        ) : (
-          <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
-        )}
-      </span>
-    ))}
+    {" / "}
+    <span class="is-active">{displayCategory}</span>
   </p>
 
   <ul class="card-list">
     {await Promise.all(
-      filteredPosts
-        .sort((a, b) => {
-          const da = new Date(a.frontmatter.date ?? Date.now());
-          const db = new Date(b.frontmatter.date ?? Date.now());
-          return db - da;
-        })
-        .map(async (post) => {
-          const excerpt = await makeExcerpt(post);
+      filteredPosts.map(async (post) => {
+        const excerpt = await makeExcerpt(post);
 
-          return (
-            <li class="card">
-              <a class="card-link" href={post.url}>
-                <div class="card-head">
-                  <p class="card-title">{post.frontmatter.title}</p>
+        const cats = normalizeCategory(post.frontmatter.category);
 
-                  <p class="card-meta">
-                    {formatDate(post.frontmatter.date)}
-                    <span class={`badge badge-${categoryClass}`}>
-                      {categoryLabel}
+        return (
+          <li class="card">
+            <a class="card-link" href={post.url}>
+              <div class="card-head">
+                <p class="card-title">{post.frontmatter.title}</p>
+
+                <p class="card-meta">
+                  {cats.map((c) => (
+                    <span
+                      class={`badge badge-${slugifyClass(c)} badge-auto ${
+                        slugifyClass(c) === category ? "is-active" : ""
+                      }`}
+                      style={`--h:${categoryHue(c)}`}
+                    >
+                      {c}
                     </span>
-                  </p>
-                </div>
+                  ))}
+                </p>
+              </div>
 
-                {excerpt && <p class="card-excerpt">{excerpt}</p>}
-              </a>
-            </li>
-          );
-        })
+              {excerpt && <p class="card-excerpt">{excerpt}</p>}
+            </a>
+          </li>
+        );
+      })
     )}
   </ul>
 
