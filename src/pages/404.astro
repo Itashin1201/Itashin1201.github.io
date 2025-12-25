@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { slugifyClass } from "../lib/blog.js";
 
 const isDateOnly = (raw) =>
   typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw);
@@ -9,6 +10,12 @@ const formatDate = (raw) => {
   const d = raw ? new Date(raw) : null;
   if (!d || Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
+};
+
+const normalizeCategory = (cat) => {
+  if (!cat) return [];
+  const arr = Array.isArray(cat) ? cat : [cat];
+  return arr.map((c) => String(c).trim()).filter(Boolean);
 };
 
 // 直近記事（blog/*.md）
@@ -36,17 +43,26 @@ const recentPosts = [...posts]
       <h2>最近の投稿</h2>
 
       <ul class="card-list">
-        {recentPosts.map((post) => (
-          <li class="card">
-            <a class="card-link" href={post.url}>
-              <div class="card-head">
-                <p class="card-title">{post.frontmatter?.title ?? "Untitled"}</p>
+        {recentPosts.map((post) => {
+          const cats = normalizeCategory(post.frontmatter?.category);
 
-                <p class="card-meta">{formatDate(post.frontmatter?.date)}</p>
-              </div>
-            </a>
-          </li>
-        ))}
+          return (
+            <li class="card">
+              <a class="card-link" href={post.url}>
+                <div class="card-head">
+                  <p class="card-title">{post.frontmatter?.title ?? "Untitled"}</p>
+
+                  <p class="card-meta">
+                    {formatDate(post.frontmatter?.date)}
+                    {cats.map((c) => (
+                      <span class={`badge badge-${slugifyClass(c)}`}>{c}</span>
+                    ))}
+                  </p>
+                </div>
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </>
   )}
