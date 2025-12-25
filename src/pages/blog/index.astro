@@ -1,130 +1,109 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { slugifyClass } from "../../lib/blog.js";
+import { slugifyClass, categoryHue } from "../../lib/blog.js";
 
 const base = import.meta.env.BASE_URL;
-
-const posts = await Astro.glob("./*.md");
 
 const formatDate = (d) =>
   new Date(d ?? Date.now()).toISOString().slice(0, 10);
 
-// カテゴリ一覧（重複排除・文字列化）
-const categories = [
-  ...new Set(
-    posts
-      .map((p) => p.frontmatter.category)
-      .filter(Boolean)
-      .flatMap((c) => (Array.isArray(c) ? c : [c]))
-      .map((c) => String(c))
-  ),
-].sort((a, b) => a.localeCompare(b, "ja"));
+const getMonth = (d) => formatDate(d).slice(0, 7);
 
-// 月一覧（YYYY-MM）
-const months = [
-  ...new Set(posts.map((p) => formatDate(p.frontmatter.date).slice(0, 7))),
-].sort().reverse();
+const posts = await Astro.glob("./*.md");
 
-// 抜粋生成（excerpt がなければ本文1行目）
+posts.sort((a, b) => {
+  const da = new Date(a.frontmatter.date ?? 0);
+  const db = new Date(b.frontmatter.date ?? 0);
+  return db - da;
+});
+
+const normalizeCategory = (cat) => {
+  if (!cat) return [];
+  const arr = Array.isArray(cat) ? cat : [cat];
+  return arr.map((c) => String(c).trim()).filter(Boolean);
+};
+
 const makeExcerpt = async (post) => {
-  if (post.frontmatter?.excerpt) return String(post.frontmatter.excerpt);
+  if (typeof post.frontmatter?.excerpt === "string") {
+    return post.frontmatter.excerpt.trim();
+  }
 
-  const raw =
-    typeof post.rawContent === "function" ? await post.rawContent() : "";
+  if (typeof post.rawContent !== "function") return "";
+
+  const raw = await post.rawContent();
   if (!raw) return "";
 
+  // frontmatter 除去
   const body = raw.replace(/^---[\s\S]*?---\s*/m, "");
 
-  const lines = body
+  // lead ブロックを丸ごと除去
+  const withoutLead = body.replace(
+    /<p\s+class=["']lead["']>[\s\S]*?<\/p>/gi,
+    ""
+  );
+
+  const lines = withoutLead
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
     .filter((l) => !l.startsWith("#"))
     .filter((l) => !l.includes('class="back"'));
 
-  for (const line of lines) {
-    const text = line
-      .replace(/<[^>]+>/g, "") // HTML除去
-      .replace(/!\[.*?\]\(.*?\)/g, "") // 画像除去
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // リンク
-      .replace(/[`*_>#-]/g, "") // Markdown記号
-      .trim();
+  if (!lines.length) return "";
 
-    if (text) {
-      return text;
-    }
-  }
-
-  return "";
+  return lines[0]
+    .replace(/<[^>]+>/g, "")
+    .replace(/!\[.*?\]\(.*?\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[`*_>#-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 ---
 
-<BaseLayout title="Blog" description="ブログ記事一覧">
+<BaseLayout title="Blog">
   <h1>Blog</h1>
 
-  <!-- カテゴリナビ -->
   <p class="sub">
-    <a href={`${base}blog/`}>all</a>
-    {categories.map((c) => (
-      <span>
-        {" / "}
-        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
-      </span>
-    ))}
+    <span class="is-active">all</span>
+    {" / "}
+    <a href={`${base}search/`}>search</a>
   </p>
 
-  <!-- 月別ナビ -->
-  <p class="sub">
-    月別：
-    {months.map((m, i) => (
-      <span>
-        {i > 0 && " / "}
-        <a href={`${base}blog/month/${m}/`}>{m}</a>
-      </span>
-    ))}
-  </p>
-
-  <!-- 記事一覧 -->
   <ul class="card-list">
     {await Promise.all(
-      posts
-        .sort((a, b) => {
-          const da = new Date(a.frontmatter.date ?? Date.now());
-          const db = new Date(b.frontmatter.date ?? Date.now());
-          return db - da;
-        })
-        .map(async (post) => {
-          const excerpt = await makeExcerpt(post);
+      posts.map(async (post) => {
+        const excerpt = await makeExcerpt(post);
+        const month = getMonth(post.frontmatter.date);
+        const cats = normalizeCategory(post.frontmatter.category);
 
-          const cats = Array.isArray(post.frontmatter.category)
-            ? post.frontmatter.category
-            : [post.frontmatter.category];
+        return (
+          <li class="card">
+            <a class="card-link" href={post.url}>
+              <div class="card-head">
+                <p class="card-title">{post.frontmatter.title}</p>
 
-          const postCategories = cats.filter(Boolean).map((c) => String(c));
+                <p class="card-meta">
+                  <span class="badge badge-month">{month}</span>
 
-          return (
-            <li class="card">
-              <a class="card-link" href={post.url}>
-                <div class="card-head">
-                  <p class="card-title">{post.frontmatter.title}</p>
+                  {cats.map((c) => (
+                    <span
+                      class={`badge badge-${slugifyClass(c)} badge-auto`}
+                      style={`--h:${categoryHue(c)}`}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </p>
+              </div>
 
-                  <p class="card-meta">
-                    {formatDate(post.frontmatter.date)}
-                    {postCategories.map((c) => (
-                      <span class={`badge badge-${slugifyClass(c)}`}>{c}</span>
-                    ))}
-                  </p>
-                </div>
-
-                {excerpt && <p class="card-excerpt">{excerpt}</p>}
-              </a>
-            </li>
-          );
-        })
+              {excerpt && <p class="card-excerpt">{excerpt}</p>}
+            </a>
+          </li>
+        );
+      })
     )}
   </ul>
 
-  <p>
-    <a href={base}>← Home</a>
-  </p>
+  <p><a href={base}>← Home</a></p>
 </BaseLayout>
