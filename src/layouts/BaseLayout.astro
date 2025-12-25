@@ -8,6 +8,7 @@ const {
   description: propDescription,
   showDate: propShowDate,
   date: propDate,
+  allowContentH1: propAllowContentH1,
 } = Astro.props;
 
 const title = propTitle ?? frontmatter.title ?? "愛と幽相";
@@ -15,6 +16,10 @@ const description =
   propDescription ?? frontmatter.description ?? "断片を書き留める場所。";
 const showDate = propShowDate ?? frontmatter.showDate ?? false;
 const rawDate = propDate ?? frontmatter.date;
+
+// ★ 本文側の h1 を許可したいページだけ true
+const allowContentH1 =
+  propAllowContentH1 ?? frontmatter.allowContentH1 ?? false;
 
 const dateObj = rawDate ? new Date(rawDate) : null;
 const isValidDate = dateObj instanceof Date && !isNaN(dateObj.getTime());
@@ -97,6 +102,11 @@ const isBlogChild =
 
     <link rel="icon" href={`${base}favicon.png`} />
     <slot name="head" />
+
+    <!-- ★ showDate（=Layoutでh1出す）時だけ、本文先頭h1を非表示にして二重を防ぐ -->
+    {showDate && !allowContentH1 && (
+      <style>{`article > h1:first-child{display:none}`}</style>
+    )}
 
     <!-- テーマ：描画前に data-theme をセット（ちらつき防止） -->
     <script>
@@ -248,7 +258,10 @@ const isBlogChild =
 
       const applyExternalLinkPolicy = () => {
         document.querySelectorAll("a[href]").forEach((a) => {
-          // 例外：data-same-tab が付いてたら何もしない
+          // ★ 完全に自動処理をスキップしたい
+          if (a.hasAttribute("data-no-auto")) return;
+
+          // ★ 外部でも同タブにしたい（既存）
           if (a.hasAttribute("data-same-tab")) return;
 
           const href = (a.getAttribute("href") ?? "").trim();
@@ -256,10 +269,18 @@ const isBlogChild =
           if (isAnchorOnly(href)) return;
           if (isSpecialProtocol(href)) return;
 
-          if (isExternalUrl(href)) {
+          const forceNewTab = a.hasAttribute("data-new-tab");
+
+          // data-external="false" が付いてたら外部扱いしない（自動 _blank を抑止）
+          const externalOverride = a.getAttribute("data-external");
+          let external = isExternalUrl(href);
+          if (externalOverride === "false") external = false;
+
+          if (external || forceNewTab) {
             a.setAttribute("target", "_blank");
             normalizeRel(a);
           } else {
+            // 内部リンクでも、手動で target=_blank の場合は rel を安全化
             if (a.getAttribute("target") === "_blank") {
               normalizeRel(a);
             }
