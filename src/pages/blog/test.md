@@ -2,7 +2,7 @@
 layout: ../../layouts/BaseLayout.astro
 title: musicasian
 date: 2025-12-25
-category: share
+category: templete
 showDate: true
 ---
 
