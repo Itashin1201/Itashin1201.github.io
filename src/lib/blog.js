@@ -1,5 +1,5 @@
 export const SITE_NAME = "愛と幽相";
-export const SITE_DESCRIPTION = "断片を書き留める場所。";
+export const SITE_DESCRIPTION = "ただのブログ。";
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -32,8 +32,9 @@ export function normalizeCategory(category) {
 }
 
 export function getCategories(posts) {
-  return [...new Set(posts.flatMap((p) => normalizeCategory(p.frontmatter?.category)))]
-    .sort((a, b) => a.localeCompare(b, "ja"));
+  return [
+    ...new Set(posts.flatMap((p) => normalizeCategory(p.frontmatter?.category))),
+  ].sort((a, b) => a.localeCompare(b, "ja"));
 }
 
 export function getMonths(posts) {
@@ -52,18 +53,28 @@ export function sortPostsDesc(posts) {
 }
 
 export function slugifyClass(input) {
-  // CSSクラスとして安全な文字列へ（日本語カテゴリも壊れないように最低限の変換）
+  // CSSクラスとして安全な文字列へ
+  // 英数字カテゴリは読みやすいslugに、非ASCII（日本語など）はハッシュで一意化する
   const raw = String(input ?? "").trim();
   if (!raw) return "tag";
 
+  // まずはASCIIで素直にslug化（英数字カテゴリ向け）
   const ascii = raw
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-_]/g, "-")
+    .replace(/[^a-z0-9-_]/g, "")
     .replace(/-+/g, "-")
     .replace(/^[-_]+|[-_]+$/g, "");
 
-  return ascii || "tag";
+  if (ascii) return ascii;
+
+  // 非ASCII（日本語など）はハッシュで一意なクラス名にする（FNV-1a 32bit）
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `tag-${(h >>> 0).toString(16)}`;
 }
 
 export async function makeExcerpt(post, { maxLength = 140 } = {}) {
@@ -71,7 +82,8 @@ export async function makeExcerpt(post, { maxLength = 140 } = {}) {
   if (fm.excerpt) return String(fm.excerpt);
   if (fm.description) return String(fm.description);
 
-  const raw = typeof post.rawContent === "function" ? await post.rawContent() : "";
+  const raw =
+    typeof post.rawContent === "function" ? await post.rawContent() : "";
   if (!raw) return "";
 
   // frontmatterを除去
