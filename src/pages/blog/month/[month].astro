@@ -8,6 +8,22 @@ const formatDate = (d) =>
   new Date(d ?? Date.now()).toISOString().slice(0, 10);
 
 /**
+ * CSSクラス用にカテゴリ文字列を安全化
+ * - 空白はハイフンへ
+ * - 記号は除去
+ * - 文字/数字/ハイフン（＋Unicode文字）だけ残す
+ */
+const slugifyClass = (input) => {
+  const s = String(input ?? "").trim().toLowerCase();
+  const out = s
+    .replace(/\s+/g, "-")
+    .replace(/[^\p{L}\p{N}-]/gu, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return out || "uncategorized";
+};
+
+/**
  * ===== 静的パス生成 =====
  * blog/*.md の date から YYYY-MM を抽出
  */
@@ -54,14 +70,6 @@ filteredPosts.sort((a, b) => {
   return db - da;
 });
 
-/**
- * ===== 抜粋生成 =====
- *
- * 優先順位:
- * 1. frontmatter.excerpt
- * 2. rawContent() 内の <p class="lead">...</p>
- * 3. それ以外は表示しない
- */
 /**
  * 抜粋生成（一覧用）
  *
@@ -121,6 +129,9 @@ const makeExcerpt = async (post) => {
       filteredPosts.map(async (post) => {
         const excerpt = await makeExcerpt(post);
 
+        const categoryLabel = String(post.frontmatter.category ?? "");
+        const categoryClass = slugifyClass(categoryLabel);
+
         return (
           <li class="card">
             <a class="card-link" href={post.url}>
@@ -138,9 +149,11 @@ const makeExcerpt = async (post) => {
                     {month}
                   </span>
 
-                  <span class={`badge badge-${post.frontmatter.category}`}>
-                    {String(post.frontmatter.category)}
-                  </span>
+                  {categoryLabel && (
+                    <span class={`badge badge-${categoryClass}`}>
+                      {categoryLabel}
+                    </span>
+                  )}
                 </p>
               </div>
 
