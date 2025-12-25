@@ -176,8 +176,8 @@ const isBlogChild =
       {lastUpdated && <div class="last-updated">最終更新：{lastUpdated}</div>}
     </footer>
 
-    <!-- テーマ：ボタン表示だけ整える（headの設定を尊重） -->
     <script>
+      // ===== Theme toggle =====
       const key = "theme";
       const btn = document.getElementById("theme-toggle");
 
@@ -199,26 +199,9 @@ const isBlogChild =
         return prefersDark ? "dark" : "light";
       };
 
-      const ensureSafeExternalRel = () => {
-        document.querySelectorAll('a[target="_blank"]').forEach((a) => {
-          const rel = (a.getAttribute("rel") ?? "")
-            .split(/\s+/)
-            .map((s) => s.trim())
-            .filter(Boolean);
-
-          if (!rel.includes("noopener")) rel.push("noopener");
-          if (!rel.includes("noreferrer")) rel.push("noreferrer");
-
-          a.setAttribute("rel", rel.join(" "));
-        });
-      };
-
       let theme = getInitialTheme();
       document.documentElement.dataset.theme = theme;
       setButton(theme);
-
-      // ★ 外部リンク rel を統一
-      ensureSafeExternalRel();
 
       btn.addEventListener("click", () => {
         theme = theme === "dark" ? "light" : "dark";
@@ -226,6 +209,57 @@ const isBlogChild =
         localStorage.setItem(key, theme);
         setButton(theme);
       });
+
+      // ===== External links: auto target=_blank + rel =====
+      const normalizeRel = (a) => {
+        const rel = (a.getAttribute("rel") ?? "")
+          .split(/\s+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        if (!rel.includes("noopener")) rel.push("noopener");
+        if (!rel.includes("noreferrer")) rel.push("noreferrer");
+
+        a.setAttribute("rel", rel.join(" "));
+      };
+
+      const isSpecialProtocol = (href) =>
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        href.startsWith("sms:") ||
+        href.startsWith("javascript:");
+
+      const isAnchorOnly = (href) => href.startsWith("#");
+
+      const isExternalUrl = (href) => {
+        try {
+          const u = new URL(href, window.location.href);
+          return u.origin !== window.location.origin;
+        } catch {
+          return false;
+        }
+      };
+
+      const applyExternalLinkPolicy = () => {
+        document.querySelectorAll("a[href]").forEach((a) => {
+          const href = (a.getAttribute("href") ?? "").trim();
+          if (!href) return;
+          if (isAnchorOnly(href)) return;
+          if (isSpecialProtocol(href)) return;
+
+          if (isExternalUrl(href)) {
+            a.setAttribute("target", "_blank");
+            normalizeRel(a);
+          } else {
+            // 内部リンクでも手動で target=_blank の場合は rel を安全化
+            if (a.getAttribute("target") === "_blank") {
+              normalizeRel(a);
+            }
+          }
+        });
+      };
+
+      applyExternalLinkPolicy();
     </script>
   </body>
 </html>
