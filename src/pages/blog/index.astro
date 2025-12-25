@@ -1,5 +1,8 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { slugifyClass } from "../../lib/blog.js";
+
+const base = import.meta.env.BASE_URL;
 
 const posts = await Astro.glob("./*.md");
 
@@ -19,11 +22,7 @@ const categories = [
 
 // 月一覧（YYYY-MM）
 const months = [
-  ...new Set(
-    posts.map((p) =>
-      formatDate(p.frontmatter.date).slice(0, 7)
-    )
-  ),
+  ...new Set(posts.map((p) => formatDate(p.frontmatter.date).slice(0, 7))),
 ].sort().reverse();
 
 // 抜粋生成（excerpt がなければ本文1行目）
@@ -45,10 +44,10 @@ const makeExcerpt = async (post) => {
 
   for (const line of lines) {
     const text = line
-      .replace(/<[^>]+>/g, "")                 // HTML除去
-      .replace(/!\[.*?\]\(.*?\)/g, "")         // 画像除去
+      .replace(/<[^>]+>/g, "") // HTML除去
+      .replace(/!\[.*?\]\(.*?\)/g, "") // 画像除去
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // リンク
-      .replace(/[`*_>#-]/g, "")                // Markdown記号
+      .replace(/[`*_>#-]/g, "") // Markdown記号
       .trim();
 
     if (text) {
@@ -60,25 +59,16 @@ const makeExcerpt = async (post) => {
 };
 ---
 
-<BaseLayout
-  title="Blog"
-  description="ブログ記事一覧"
->
+<BaseLayout title="Blog" description="ブログ記事一覧">
   <h1>Blog</h1>
 
   <!-- カテゴリナビ -->
   <p class="sub">
-    <a href={`${import.meta.env.BASE_URL}blog/`}>all</a>
+    <a href={`${base}blog/`}>all</a>
     {categories.map((c) => (
       <span>
         {" / "}
-        <a
-          href={`${import.meta.env.BASE_URL}blog/category/${encodeURIComponent(
-            c
-          )}/`}
-        >
-          {c}
-        </a>
+        <a href={`${base}blog/category/${encodeURIComponent(c)}/`}>{c}</a>
       </span>
     ))}
   </p>
@@ -89,9 +79,7 @@ const makeExcerpt = async (post) => {
     {months.map((m, i) => (
       <span>
         {i > 0 && " / "}
-        <a href={`${import.meta.env.BASE_URL}blog/month/${m}/`}>
-          {m}
-        </a>
+        <a href={`${base}blog/month/${m}/`}>{m}</a>
       </span>
     ))}
   </p>
@@ -108,6 +96,12 @@ const makeExcerpt = async (post) => {
         .map(async (post) => {
           const excerpt = await makeExcerpt(post);
 
+          const cats = Array.isArray(post.frontmatter.category)
+            ? post.frontmatter.category
+            : [post.frontmatter.category];
+
+          const postCategories = cats.filter(Boolean).map((c) => String(c));
+
           return (
             <li class="card">
               <a class="card-link" href={post.url}>
@@ -116,16 +110,9 @@ const makeExcerpt = async (post) => {
 
                   <p class="card-meta">
                     {formatDate(post.frontmatter.date)}
-                    {post.frontmatter.category && (
-                      <span
-                        class={`badge badge-${String(
-                          post.frontmatter.category
-                        )}`}
-                      >
-                        {" "}
-                        {String(post.frontmatter.category)}
-                      </span>
-                    )}
+                    {postCategories.map((c) => (
+                      <span class={`badge badge-${slugifyClass(c)}`}>{c}</span>
+                    ))}
                   </p>
                 </div>
 
@@ -138,6 +125,6 @@ const makeExcerpt = async (post) => {
   </ul>
 
   <p>
-    <a href={import.meta.env.BASE_URL}>← Home</a>
+    <a href={base}>← Home</a>
   </p>
 </BaseLayout>
