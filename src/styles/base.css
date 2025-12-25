@@ -6,3 +6,36 @@ html, body{
   font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
   line-height: 1.9;
 }
+
+/* ===== Focus (keyboard) =====
+   マウス操作では出にくく、キーボード操作では見やすいフォーカスリング */
+:where(
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible{
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* focus-visible 非対応ブラウザ向けフォールバック（対応済みなら無視される） */
+@supports not selector(:focus-visible){
+  :where(
+    a,
+    button,
+    input,
+    textarea,
+    select,
+    summary,
+    [tabindex]:not([tabindex="-1"])
+  ):focus{
+    outline: 2px solid var(--text);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
