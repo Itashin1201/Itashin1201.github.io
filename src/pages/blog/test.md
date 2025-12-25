@@ -2,11 +2,11 @@
 layout: ../../layouts/BaseLayout.astro
 title: test
 date: 2025-12-25
-category: memo
+category: music
 showDate: true
 ---
 
-testeずgithubにサイトをアップしてみた。
+testeずgithubにサイトをてててすアップしてみた。
 
 多少HTMLは触ったことあるので、テキストくらいならどうにか書けそう。だけど、画像パスとかいちいち指定するのは面倒というか億劫に感じるね。
 
