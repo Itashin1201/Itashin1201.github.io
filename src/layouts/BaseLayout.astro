@@ -260,14 +260,8 @@ const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
             <h1 class="post-title">{title}</h1>
           </div>
 
-          {displayDateTime && (
-            <time class="post-date" datetime={isoDate}>
-              公開：{displayDateTime}
-            </time>
-          )}
-
           {updatedCommit?.display && (
-            <time class="post-date post-updated" datetime={updatedCommit.iso}>
+            <time class="post-date" datetime={updatedCommit.iso}>
               更新：{updatedCommit.display}
             </time>
           )}
