@@ -3,13 +3,12 @@ import { execFileSync } from "node:child_process";
 let cachedLastUpdated: string | null | undefined;
 
 /**
- * サイト全体の「最終更新日」を返す。
+ * サイト全体の「最終更新日時」を返す。
  *
- * 以前は「最新の記事の frontmatter.date」を使っていたため、
- * 記事本文やCSSを修正しても日付が変わらないことがありました。
- *
- * GitHub Actions (Pages) では OS のファイル作成日時は安定しないので、
+ * GitHub Pages (Actions) では OS のファイル作成日時は安定しないため、
  * リポジトリの最新コミット時刻をソースにします。
+ *
+ * 返り値: JST で "YYYY/MM/DD HH:MM:SS"
  */
 export async function getLastUpdated(): Promise<string | null> {
   if (cachedLastUpdated !== undefined) return cachedLastUpdated;
@@ -31,12 +30,18 @@ export async function getLastUpdated(): Promise<string | null> {
       return null;
     }
 
-    // 表示は JST 固定
+    // 表示は JST 固定（秒まで出す。日付だけだと同日コミットで変化が見えないため）
     const parts = new Intl.DateTimeFormat("ja-JP", {
       timeZone: "Asia/Tokyo",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      // Node の環境差で 24時表記になる事故を避ける
+      hourCycle: "h23",
     })
       .formatToParts(d)
       .reduce((acc: Record<string, string>, p) => {
@@ -44,7 +49,7 @@ export async function getLastUpdated(): Promise<string | null> {
         return acc;
       }, {});
 
-    cachedLastUpdated = `${parts.year}/${parts.month}/${parts.day}`;
+    cachedLastUpdated = `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
     return cachedLastUpdated;
   } catch {
     cachedLastUpdated = null;
