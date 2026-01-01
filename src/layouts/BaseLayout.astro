@@ -155,13 +155,18 @@ const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
       {!isHome && (
         <nav class="breadcrumb" aria-label="Primary">
           <a href={base}>Home</a>
-          <span class="sep" aria-hidden="true"> / </span>
-          <a
-            href={`${base}blog/`}
-            aria-current={(isBlogIndex || isBlogChild) ? "page" : undefined}
-          >
-            Blog
-          </a>
+          {/* Blog（all=ブログTOP）のときは Blog を出さず、Home / Search にする */}
+          {!isBlogIndex && (
+            <>
+              <span class="sep" aria-hidden="true"> / </span>
+              <a
+                href={`${base}blog/`}
+                aria-current={(isBlogIndex || isBlogChild) ? "page" : undefined}
+              >
+                Blog
+              </a>
+            </>
+          )}
           {!isSearchPage && (
             <>
               <span class="sep" aria-hidden="true"> / </span>
