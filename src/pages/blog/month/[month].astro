@@ -117,6 +117,7 @@ const makeExcerpt = async (post) => {
         {await Promise.all(
           filteredPosts.map(async (post) => {
             const excerpt = await makeExcerpt(post);
+            const dateLabel = formatDate(post.frontmatter?.date);
             const cats = normalizeCategory(post.frontmatter?.category);
 
             return (
@@ -126,7 +127,7 @@ const makeExcerpt = async (post) => {
                     <p class="card-title">{post.frontmatter?.title}</p>
 
                     <p class="card-meta">
-                      <span class="badge badge-month is-active">{month}</span>
+                      <span class="badge badge-month">{dateLabel}</span>
 
                       {cats.map((c) => (
                         <span
