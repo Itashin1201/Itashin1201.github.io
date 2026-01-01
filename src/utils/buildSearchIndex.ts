@@ -1,5 +1,5 @@
 export async function buildSearchIndex() {
-  const modules = import.meta.glob("../pages/blog/*.md");
+  const modules = import.meta.glob("../pages/blog/**/*.md");
 
   const items: Array<{
     title?: string;

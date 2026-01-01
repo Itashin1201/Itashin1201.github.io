@@ -1,5 +1,5 @@
 export async function getLastUpdated(): Promise<string | null> {
-  const modules = import.meta.glob("../pages/blog/*.md");
+  const modules = import.meta.glob("../pages/blog/**/*.md");
 
   const dates: number[] = [];
 
