@@ -4,7 +4,7 @@ import path from "node:path";
 
 type Mode = "first" | "latest";
 
-const cache = new Map<string, string | null>();
+const cache = new Map<string, { iso: string; display: string } | null>();
 
 function toPosix(p: string) {
   return p.replaceAll("\\", "/");
@@ -17,11 +17,11 @@ function normalizeSlash(p: string) {
 }
 
 function stripBase(pathname: string) {
+  // GitHub Pages の BASE_URL（例: /Itashin1201.github.io/）が付く場合に剥がす
   const base = normalizeSlash(import.meta.env.BASE_URL ?? "/");
   const pn = normalizeSlash(pathname);
 
   if (base !== "/" && pn.startsWith(base)) {
-    // "/<base>/blog/..." -> "/blog/..."
     return normalizeSlash(pn.slice(base.length));
   }
   return pn;
@@ -47,14 +47,12 @@ function findSourceFileFromPathname(pathname: string): string | null {
   return null;
 }
 
-function gitTimeISO(relPath: string, mode: Mode): string | null {
+function gitCommitISO(relPath: string, mode: Mode): string | null {
   try {
     const args =
       mode === "first"
-        // 最古（初回コミット）
-        ? ["log", "--follow", "--reverse", "-1", "--format=%cI", "--", relPath]
-        // 最新（更新コミット）
-        : ["log", "--follow", "-1", "--format=%cI", "--", relPath];
+        ? ["log", "--follow", "--reverse", "-1", "--format=%cI", "--", relPath] // 最古（初回）
+        : ["log", "--follow", "-1", "--format=%cI", "--", relPath];            // 最新
 
     const out = execFileSync("git", args, { encoding: "utf8" }).trim();
     return out || null;
@@ -63,31 +61,34 @@ function gitTimeISO(relPath: string, mode: Mode): string | null {
   }
 }
 
-function toHHMMSS(iso: string): string | null {
+function isoToJstDisplay(iso: string): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
 
   const parts = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  }).formatToParts(d);
+  })
+    .formatToParts(d)
+    .reduce((acc: Record<string, string>, p) => {
+      if (p.type !== "literal") acc[p.type] = p.value;
+      return acc;
+    }, {});
 
-  const map: Record<string, string> = {};
-  for (const p of parts) {
-    if (p.type !== "literal") map[p.type] = p.value;
-  }
-  return `${map.hour}:${map.minute}:${map.second}`;
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
-/**
- * mode:
- *  - "first"  : その記事の「書いた時刻」（初回コミット）…編集しても変わらない
- *  - "latest" : その記事の「更新時刻」（最新コミット）…編集で変わる
- */
-export function getPostTimeHHMMSS(pathname: string, mode: Mode = "first"): string | null {
+/** JST の "YYYY-MM-DD HH:MM:SS" と ISO(datetime属性用) を返す */
+export function getPostCommitDateTime(
+  pathname: string,
+  mode: Mode = "first"
+): { iso: string; display: string } | null {
   const key = `${mode}:${pathname}`;
   if (cache.has(key)) return cache.get(key) ?? null;
 
@@ -98,9 +99,23 @@ export function getPostTimeHHMMSS(pathname: string, mode: Mode = "first"): strin
   }
 
   const rel = toPosix(path.relative(process.cwd(), file));
-  const iso = gitTimeISO(rel, mode);
-  const hhmmss = iso ? toHHMMSS(iso) : null;
+  const iso = gitCommitISO(rel, mode);
+  if (!iso) {
+    cache.set(key, null);
+    return null;
+  }
 
-  cache.set(key, hhmmss);
-  return hhmmss;
+  const display = isoToJstDisplay(iso);
+  const result = display ? { iso, display } : null;
+
+  cache.set(key, result);
+  return result;
+}
+
+/** 互換：JSTのHH:MM:SSだけ欲しい時 */
+export function getPostTimeHHMMSS(pathname: string, mode: Mode = "first"): string | null {
+  const dt = getPostCommitDateTime(pathname, mode);
+  if (!dt) return null;
+  const m = dt.display.match(/\b(\d{2}:\d{2}:\d{2})\b/);
+  return m ? m[1] : null;
 }
