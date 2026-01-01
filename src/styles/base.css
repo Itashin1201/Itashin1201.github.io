@@ -7,6 +7,12 @@ html, body{
   line-height: 1.9;
 }
 
+*,
+*::before,
+*::after{
+  box-sizing: border-box;
+}
+
 /* ===== Focus (keyboard) =====
    マウス操作では出にくく、キーボード操作では見やすいフォーカスリング */
 :where(
@@ -38,4 +44,23 @@ html, body{
     outline-offset: 3px;
     border-radius: 6px;
   }
+}
+
+/* ===== Skip link ===== */
+.skip-link{
+  position: absolute;
+  top: -48px;
+  left: 14px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+  z-index: 10000;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible{
+  top: 14px;
 }
