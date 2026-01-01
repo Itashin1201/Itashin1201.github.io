@@ -1,7 +1,38 @@
 /* ===== Footer ===== */
 
-.footer{
-  margin-top: 56px;
-  font-size: 0.9rem;
+.site-footer{
+  margin-top: 4rem;
+  padding: 2rem 20px 1.2rem; /* 左右に余白 */
+  text-align: center;
+  font-size: 0.85rem;
   color: var(--muted);
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 確実に中央寄せ */
+  gap: 0.5rem;
+}
+
+.site-footer .copyright{
+  opacity: 0.8;
+}
+
+.site-footer .last-updated{
+  opacity: 0.6;
+}
+
+/* （任意）昔の .footer を残して互換対応したいなら */
+.footer{
+  margin-top: 4rem;
+  padding: 2rem 20px 1.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
