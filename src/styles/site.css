@@ -3,26 +3,7 @@
    Feel free to rename to index.css later if you prefer. */
 @import "./index.css";
 
-.site-footer{
-  margin-top: 4rem;
-  padding: 2rem 0 1.2rem;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--muted);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.site-footer .copyright{
-  opacity: 0.8;
-}
-
-.site-footer .last-updated{
-  opacity: 0.6;
-}
-
-.search-container{
+.search{
   max-width: 640px;
   margin: 0 auto;
 }
@@ -30,6 +11,18 @@
 .search-title{
   font-size: 1.4rem;
   margin-bottom: 1rem;
+}
+
+.search-label{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .search-input{
@@ -47,7 +40,7 @@
   border-color: var(--accent);
 }
 
-.search-stats{
+.search-count{
   margin-top: 0.6rem;
   font-size: 0.9rem;
   opacity: 0.75;
@@ -68,13 +61,18 @@
   padding: 0.9rem 1rem;
 }
 
+.search-link{
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .search-item-title{
   display: inline-block;
   font-weight: 700;
-  text-decoration: none;
 }
 
-.search-item-title:hover{
+.search-link:hover .search-item-title{
   text-decoration: underline;
 }
 
@@ -85,11 +83,10 @@
   line-height: 1.6;
 }
 
-.search-item-excerpt{
+.search-item-snippet{
   margin-top: 0.4rem;
   font-size: 0.85rem;
   opacity: 0.7;
-  margin-bottom: 0.8rem;
 }
 
 .search-item-meta{
@@ -101,4 +98,14 @@
 .search-category{
   display: inline-block;
   margin-left: 0.4rem;
+}
+
+.search mark{
+  background: rgba(255, 225, 0, 0.35);
+  padding: 0 0.1em;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .search mark{
+  background: rgba(255, 225, 0, 0.25);
 }
