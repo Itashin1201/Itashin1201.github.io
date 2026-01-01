@@ -28,6 +28,7 @@
 }
 
 .search-input{
+  text-align: left;
   width: 100%;
   padding: 0.6rem 0.7rem;
   font-size: 1rem;
@@ -110,4 +111,9 @@
 
 [data-theme="dark"] .search mark{
   background: rgba(255, 225, 0, 0.25);
+}
+
+.search-input::placeholder{
+  text-align: left;
+  opacity: 0.65;
 }
