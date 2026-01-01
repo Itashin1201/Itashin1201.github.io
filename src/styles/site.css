@@ -4,9 +4,11 @@
 @import "./index.css";
 
 .search{
-  width: 100%;
-  max-width: none;
-  margin: 0;
+  /* 空の状態でも“妙に中央寄せ/幅が細い”事故を潰す */
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
 }
 
 
@@ -29,7 +31,10 @@
 
 .search-input{
   text-align: left;
-  width: 100%;
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
   padding: 0.6rem 0.7rem;
   font-size: 1rem;
   border: 1px solid var(--border);
