@@ -7,17 +7,6 @@ html, body{
   line-height: 1.9;
 }
 
-/* ===== Sticky footer =====
-   文章が短いページでもフッターを画面下に寄せる（重なりなし） */
-body{
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-@supports (height: 100dvh){
-  body{ min-height: 100dvh; }
-}
 
 *,
 *::before,

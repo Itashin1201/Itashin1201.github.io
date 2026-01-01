@@ -1,3 +1,19 @@
+/* ===== Page ===== */
+
+.page{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@supports (min-height: 100dvh){
+  .page{ min-height: 100dvh; }
+}
+
+.page > main{
+  flex: 1;
+}
+
 /* ===== Layout ===== */
 
 .container{
@@ -6,5 +22,4 @@
   margin-right: auto;
   padding: 72px 20px;
   box-sizing: border-box;
-  flex: 1;
 }
