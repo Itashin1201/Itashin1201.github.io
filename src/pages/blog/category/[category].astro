@@ -15,7 +15,7 @@ const base = import.meta.env.BASE_URL;
  * （slugifyClass を URL パラメータにして安全に）
  */
 export async function getStaticPaths() {
-  const posts = await Astro.glob("../*.md");
+  const posts = await Astro.glob("../**/*.md");
 
   // slug -> 表示名（元カテゴリ文字列）
   const map = new Map();
@@ -38,7 +38,7 @@ const { category } = Astro.params;
 const { categoryLabel } = Astro.props;
 
 // ===== 記事取得 =====
-const posts = await Astro.glob("../*.md");
+const posts = await Astro.glob("../**/*.md");
 
 /**
  * ===== category でフィルタ =====
