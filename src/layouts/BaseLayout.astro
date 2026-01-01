@@ -1,7 +1,7 @@
 ---
 import "../styles/site.css";
 import { getLastUpdated } from "../utils/getLastUpdated";
-import { getPostTimeHHMMSS } from "../utils/getPostTime";
+import { getPostTimeHHMMSS, getPostCommitDateTime } from "../utils/getPostTime";
 import { SITE_NAME, SITE_DESCRIPTION } from "../lib/blog.js";
 
 const {
@@ -54,6 +54,16 @@ if (showDate && isDateOnly) {
     inferredHHMMSS = getPostTimeHHMMSS(Astro.url.pathname);
   } catch {
     inferredHHMMSS = null;
+  }
+}
+
+// 更新：その記事ファイルの最新コミット日時（JSTで YYYY-MM-DD HH:MM:SS）
+let updatedCommit: { iso: string; display: string } | null = null;
+if (showDate) {
+  try {
+    updatedCommit = getPostCommitDateTime(Astro.url.pathname, "latest");
+  } catch {
+    updatedCommit = null;
   }
 }
 
@@ -160,6 +170,10 @@ const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
       <meta property="article:published_time" content={isoDate} />
     )}
 
+    {ogType === "article" && updatedCommit?.iso && (
+      <meta property="article:modified_time" content={updatedCommit.iso} />
+    )}
+
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
@@ -248,7 +262,13 @@ const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
 
           {displayDateTime && (
             <time class="post-date" datetime={isoDate}>
-              {displayDateTime}
+              公開：{displayDateTime}
+            </time>
+          )}
+
+          {updatedCommit?.display && (
+            <time class="post-date post-updated" datetime={updatedCommit.iso}>
+              更新：{updatedCommit.display}
             </time>
           )}
         </header>
