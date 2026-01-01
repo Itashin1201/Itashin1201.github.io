@@ -54,11 +54,11 @@ try {
 const normalizePath = (p) => (p.endsWith("/") ? p : `${p}/`);
 const currentPath = normalizePath(Astro.url.pathname);
 
-const isHome = currentPath === normalizePath(base);
-const isBlogIndex = currentPath === normalizePath(`${base}blog/`);
-const isSearchPage = currentPath === normalizePath(`${base}search/`);
-const isBlogChild =
-  currentPath.startsWith(normalizePath(`${base}blog/`)) && !isBlogIndex;
+// NOTE: BASE_URL 付き/無しのどちらでも判定が安定するように末尾で判定
+const isHome = currentPath === normalizePath(base) || currentPath === "/";
+const isBlogIndex = currentPath.endsWith("/blog/");
+const isSearchPage = currentPath.endsWith("/search/");
+const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
 ---
 
 <!doctype html>
@@ -162,10 +162,12 @@ const isBlogChild =
           >
             Blog
           </a>
-          <span class="sep" aria-hidden="true"> / </span>
-          <a href={`${base}search/`} aria-current={isSearchPage ? "page" : undefined}>
-            Search
-          </a>
+          {!isSearchPage && (
+            <>
+              <span class="sep" aria-hidden="true"> / </span>
+              <a href={`${base}search/`}>Search</a>
+            </>
+          )}
         </nav>
       )}
 
