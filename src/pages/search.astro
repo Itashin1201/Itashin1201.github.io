@@ -96,14 +96,16 @@ const index = await buildSearchIndex();
       return Number.isFinite(t) ? t : 0;
     };
 
-    const formatDate = (d) => {
-      if (!d) return "";
-      const date = new Date(d);
-      if (isNaN(date.getTime())) return "";
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${y}/${m}/${day}`;
+    const isDateOnly = (raw) =>
+      typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw);
+
+    const formatDate = (raw) => {
+      if (!raw) return "";
+      // "YYYY-MM-DD" はそのまま返してUTC変換ズレを回避
+      if (isDateOnly(raw)) return raw;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return "";
+      return d.toISOString().slice(0, 10);
     };
 
     const normalizeCategories = (cat) => {
