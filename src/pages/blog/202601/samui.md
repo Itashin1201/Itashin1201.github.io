@@ -1,9 +1,0 @@
----
-layout: ../../../layouts/BaseLayout.astro
-title: SAMUI
-date: 2026-01-01
-category: diary
-showDate: true
----
-
-ああ寒いｈ
