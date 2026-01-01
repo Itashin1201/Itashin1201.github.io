@@ -11,7 +11,7 @@ const base = import.meta.env.BASE_URL;
 
 const getMonth = (d) => formatDate(d ?? Date.now()).slice(0, 7);
 
-const posts = await Astro.glob("./*.md");
+const posts = await Astro.glob("./**/*.md");
 
 posts.sort((a, b) => {
   const da = new Date(a.frontmatter?.date ?? 0);
