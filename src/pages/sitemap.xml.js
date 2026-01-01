@@ -3,7 +3,7 @@ import { formatDate, getCategories, getMonths } from "../lib/blog.js";
 export async function GET({ site }) {
   const siteUrl = site ?? new URL("https://itashin1201.github.io");
 
-  const modules = import.meta.glob("./blog/*.md", { eager: true });
+  const modules = import.meta.glob("./blog/**/*.md", { eager: true });
   const posts = Object.values(modules);
 
   const staticPaths = ["/", "/blog/", "/rss.xml", "/sitemap.xml"];

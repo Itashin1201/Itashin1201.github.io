@@ -19,7 +19,7 @@ const normalizeCategory = (cat) => {
 };
 
 // 直近記事（blog/*.md）
-const posts = await Astro.glob("./blog/*.md");
+const posts = await Astro.glob("./blog/**/*.md");
 
 const recentPosts = [...posts]
   .sort((a, b) => {

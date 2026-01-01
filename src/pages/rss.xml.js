@@ -13,7 +13,7 @@ const stripTags = (s) => String(s).replace(/<[^>]*>/g, "").trim();
 export async function GET({ site }) {
   const siteUrl = site ?? new URL("https://itashin1201.github.io");
 
-  const modules = import.meta.glob("./blog/*.md", { eager: true });
+  const modules = import.meta.glob("./blog/**/*.md", { eager: true });
   const posts = Object.values(modules);
 
   posts.sort((a, b) => {
