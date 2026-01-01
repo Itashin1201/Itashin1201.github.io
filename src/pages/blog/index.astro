@@ -11,10 +11,7 @@ const base = import.meta.env.BASE_URL;
 
 const getDateLabel = (d) => formatDate(d ?? Date.now());
 
-// NOTE: Astro.glob は非推奨になったため import.meta.glob に置き換え（出力は同等）
-const posts = Object.values(
-  import.meta.glob("./**/*.md", { eager: true, import: "default" })
-);
+const posts = await Astro.glob("./**/*.md");
 
 posts.sort((a, b) => {
   const da = new Date(a.frontmatter?.date ?? 0);
