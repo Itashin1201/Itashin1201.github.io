@@ -1,4 +1,4 @@
-import { formatDate, getCategories, getMonths } from "../lib/blog.js";
+import { formatDate, getCategories, getMonths, slugifyClass } from "../lib/blog.js";
 
 export async function GET({ site }) {
   const siteUrl = site ?? new URL("https://itashin1201.github.io");
@@ -29,7 +29,10 @@ export async function GET({ site }) {
 
   // カテゴリ / 月別
   for (const c of categories) {
-    const loc = new URL(`/blog/category/${encodeURIComponent(c)}/`, siteUrl).toString();
+    // NOTE: カテゴリURLは blog の実装と同じ slugifyClass() を使う
+    // （日本語カテゴリ等を encodeURIComponent で入れると /blog/category/[category].astro の
+    //  静的ルートと一致しない可能性があるため）
+    const loc = new URL(`/blog/category/${slugifyClass(c)}/`, siteUrl).toString();
     urls.push({ loc });
   }
 
