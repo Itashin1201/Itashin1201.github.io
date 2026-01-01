@@ -1,6 +1,7 @@
 ---
 import "../styles/site.css";
 import { getLastUpdated } from "../utils/getLastUpdated";
+import { getPostTimeHHMMSS } from "../utils/getPostTime";
 import { SITE_NAME, SITE_DESCRIPTION } from "../lib/blog.js";
 
 const {
@@ -24,11 +25,55 @@ const rawDate = propDate ?? frontmatter.date;
 const allowContentH1 =
   propAllowContentH1 ?? frontmatter.allowContentH1 ?? false;
 
-const dateObj = rawDate ? new Date(rawDate) : null;
+// date が "YYYY-MM-DD" の場合は、そのまま new Date() すると UTC 扱いになって
+// JST 表示で 09:00:00 になるため、JST として解釈する（時刻は自動推定）
+const rawDateStr = rawDate ? String(rawDate) : null;
+const isDateOnly = !!(rawDateStr && /^\d{4}-\d{2}-\d{2}$/.test(rawDateStr));
+
+// frontmatter は date: YYYY-MM-DD のままにしたいので、時刻は git から推定する
+// - その記事ファイルの「追加（初回コミット）」時刻（取れなければ最新コミット）
+// - git が無い/履歴が浅い場合は 00:00:00
+let inferredHHMMSS: string | null = null;
+if (showDate && isDateOnly) {
+  try {
+    inferredHHMMSS = getPostTimeHHMMSS(Astro.url.pathname);
+  } catch {
+    inferredHHMMSS = null;
+  }
+}
+
+const dateInput =
+  isDateOnly && rawDateStr
+    ? `${rawDateStr}T${inferredHHMMSS ?? "00:00:00"}+09:00`
+    : rawDateStr;
+
+const dateObj = dateInput ? new Date(dateInput) : null;
 const isValidDate = dateObj instanceof Date && !isNaN(dateObj.getTime());
 
-const displayDate = isValidDate ? dateObj.toISOString().slice(0, 10) : null;
 const isoDate = isValidDate ? dateObj.toISOString() : null;
+
+// 記事内（showDate=true）の表示用：YYYY-MM-DD HH:MM:SS（JST固定）
+const displayDateTime = (() => {
+  if (!isValidDate) return null;
+
+  const parts = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+    .formatToParts(dateObj)
+    .reduce((acc, p) => {
+      if (p.type !== "literal") acc[p.type] = p.value;
+      return acc;
+    }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+})();
 
 // NOTE: siteUrl はあなたの公開URLに合わせて固定（Astro.site があればそちら優先）
 const siteUrl = "https://itashin1201.github.io";
@@ -183,9 +228,9 @@ const isBlogChild = currentPath.includes("/blog/") && !isBlogIndex;
             <h1 class="post-title">{title}</h1>
           </div>
 
-          {displayDate && (
+          {displayDateTime && (
             <time class="post-date" datetime={isoDate}>
-              {displayDate}
+              {displayDateTime}
             </time>
           )}
         </header>
