@@ -4,6 +4,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* まれに main が“中身の幅”で縮む事故があるので明示的に stretch */
+  align-items: stretch;
 }
 
 @supports (min-height: 100dvh){
@@ -12,11 +14,17 @@
 
 .page > main{
   flex: 1;
+  width: 100%;
+}
+
+.page > footer{
+  width: 100%;
 }
 
 /* ===== Layout ===== */
 
 .container{
+  width: 100%;
   max-width: 720px;
   margin-left: auto;
   margin-right: auto;
