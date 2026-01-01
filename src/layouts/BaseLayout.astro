@@ -25,10 +25,25 @@ const rawDate = propDate ?? frontmatter.date;
 const allowContentH1 =
   propAllowContentH1 ?? frontmatter.allowContentH1 ?? false;
 
-// date が "YYYY-MM-DD" の場合は、そのまま new Date() すると UTC 扱いになって
-// JST 表示で 09:00:00 になるため、JST として解釈する（時刻は自動推定）
-const rawDateStr = rawDate ? String(rawDate) : null;
-const isDateOnly = !!(rawDateStr && /^\d{4}-\d{2}-\d{2}$/.test(rawDateStr));
+// frontmatter の date は「YYYY-MM-DD」だけにしたい前提。
+// ただし Astro/YAML 側で Date オブジェクトに変換されることがあり、その場合
+// String(Date) → "Thu Jan ..." になって判定不能 + JST 表示で 09:00:00 に見える。
+// ここでは「日付だけ」を常に正規化して扱う。
+const rawDateValue = rawDate ?? null;
+
+let rawDateStr: string | null = null;
+let dateOnlyStr: string | null = null;
+
+if (rawDateValue instanceof Date && !isNaN(rawDateValue.getTime())) {
+  // Date に変換されていても、元は YYYY-MM-DD の想定なので日付部分だけ抜く
+  dateOnlyStr = rawDateValue.toISOString().slice(0, 10);
+  rawDateStr = dateOnlyStr;
+} else if (rawDateValue != null) {
+  rawDateStr = String(rawDateValue);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDateStr)) dateOnlyStr = rawDateStr;
+}
+
+const isDateOnly = !!dateOnlyStr;
 
 // frontmatter は date: YYYY-MM-DD のままにしたいので、時刻は git から推定する
 // - その記事ファイルの「追加（初回コミット）」時刻（取れなければ最新コミット）
@@ -42,38 +57,41 @@ if (showDate && isDateOnly) {
   }
 }
 
-const dateInput =
-  isDateOnly && rawDateStr
-    ? `${rawDateStr}T${inferredHHMMSS ?? "00:00:00"}+09:00`
-    : rawDateStr;
+// 記事内（showDate=true）の表示用
+// - dateOnly のとき："YYYY-MM-DD HH:MM:SS"（09:00 事故を回避するため Date を介さない）
+// - それ以外：従来通り Date を parse して JST 表示
+let isoDate: string | null = null;
+let displayDateTime: string | null = null;
 
-const dateObj = dateInput ? new Date(dateInput) : null;
-const isValidDate = dateObj instanceof Date && !isNaN(dateObj.getTime());
+if (dateOnlyStr) {
+  const hhmmss = inferredHHMMSS ?? "00:00:00";
+  displayDateTime = `${dateOnlyStr} ${hhmmss}`;
+  isoDate = `${dateOnlyStr}T${hhmmss}+09:00`;
+} else {
+  const dateObj = rawDateStr ? new Date(rawDateStr) : null;
+  const isValidDate = dateObj instanceof Date && !isNaN(dateObj.getTime());
+  if (isValidDate && dateObj) {
+    isoDate = dateObj.toISOString();
 
-const isoDate = isValidDate ? dateObj.toISOString() : null;
+    const parts = new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(dateObj)
+      .reduce((acc, p) => {
+        if (p.type !== "literal") acc[p.type] = p.value;
+        return acc;
+      }, {});
 
-// 記事内（showDate=true）の表示用：YYYY-MM-DD HH:MM:SS（JST固定）
-const displayDateTime = (() => {
-  if (!isValidDate) return null;
-
-  const parts = new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  })
-    .formatToParts(dateObj)
-    .reduce((acc, p) => {
-      if (p.type !== "literal") acc[p.type] = p.value;
-      return acc;
-    }, {});
-
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-})();
+    displayDateTime = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+  }
+}
 
 // NOTE: siteUrl はあなたの公開URLに合わせて固定（Astro.site があればそちら優先）
 const siteUrl = "https://itashin1201.github.io";
