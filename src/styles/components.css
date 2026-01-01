@@ -69,22 +69,42 @@
   background: hsla(calc(var(--h, 210) * 1deg), 55%, 60%, 0.14);
 }
 
-/* “中立色”にしたいカテゴリは上書き */
-.badge-diary{
+/* “中立色”にしたいカテゴリは上書き（badge-auto を確実に上書き） */
+.badge.badge-auto.badge-diary,
+.badge.badge-auto.badge-test{
   color: var(--muted);
+  border-color: var(--border);
+  background: rgba(0,0,0,0.02);
 }
 
-.badge-test{
-  color: var(--muted);
+[data-theme="dark"] .badge.badge-auto.badge-diary,
+[data-theme="dark"] .badge.badge-auto.badge-test{
+  background: rgba(255,255,255,0.08);
 }
 
 /* 既存の手動色（好みならこのまま優先） */
-.badge-tech{
+.badge.badge-auto.badge-tech{
   color: #0369a1;
+  border-color: rgba(3,105,161,0.25);
+  background: rgba(3,105,161,0.10);
 }
 
-.badge-memo{
+[data-theme="dark"] .badge.badge-auto.badge-tech{
+  color: #7dd3fc;
+  border-color: rgba(125,211,252,0.28);
+  background: rgba(125,211,252,0.14);
+}
+
+.badge.badge-auto.badge-memo{
   color: #92400e;
+  border-color: rgba(146,64,14,0.25);
+  background: rgba(146,64,14,0.10);
+}
+
+[data-theme="dark"] .badge.badge-auto.badge-memo{
+  color: #fdba74;
+  border-color: rgba(253,186,116,0.28);
+  background: rgba(253,186,116,0.14);
 }
 
 /* ===== Theme toggle ===== */
