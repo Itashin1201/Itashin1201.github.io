@@ -149,6 +149,8 @@ const isBlogChild =
       dark
     </button>
 
+    <div class="page">
+
     <main id="content" class="container">
       {!isHome && (
         <nav class="breadcrumb" aria-label="Primary">
@@ -191,6 +193,7 @@ const isBlogChild =
       <div class="copyright">© {new Date().getFullYear()} itashin</div>
       {lastUpdated && <div class="last-updated">最終更新：{lastUpdated}</div>}
     </footer>
+    </div>
 
     <script>
       // ===== Theme toggle =====
