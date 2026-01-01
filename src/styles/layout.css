@@ -1,9 +1,10 @@
 /* ===== Layout ===== */
 
-main{
+.container{
   max-width: 720px;
   margin-left: auto;
   margin-right: auto;
   padding: 72px 20px;
   box-sizing: border-box;
+  flex: 1;
 }
