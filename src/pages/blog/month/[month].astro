@@ -14,7 +14,7 @@ const base = import.meta.env.BASE_URL;
  * blog/*.md の date から YYYY-MM を抽出
  */
 export async function getStaticPaths() {
-  const posts = await Astro.glob("../*.md");
+  const posts = await Astro.glob("../**/*.md");
 
   const months = [
     ...new Set(
@@ -33,7 +33,7 @@ export async function getStaticPaths() {
 const { month } = Astro.params;
 
 // ===== 記事取得 =====
-const posts = await Astro.glob("../*.md");
+const posts = await Astro.glob("../**/*.md");
 
 /**
  * ===== 月でフィルタ =====
