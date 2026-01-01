@@ -1,61 +1,110 @@
-import { execSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
-// Route (pathname) -> module specifier (relative import path)
-let cachedRouteToModule: Record<string, string> | null | undefined;
+const PAGES_DIR = path.resolve(process.cwd(), "src", "pages");
+const BLOG_DIR = path.join(PAGES_DIR, "blog");
 
-function normalizePath(p: string): string {
-  return p.endsWith("/") ? p : `${p}/`;
+let ROUTE_MAP: Map<string, string> | null = null;
+
+function toPosix(p: string) {
+  return p.replaceAll("\\", "/");
 }
 
-function buildRouteMap(): Record<string, string> {
-  const modules = import.meta.glob("../pages/blog/**/*.md");
-  const map: Record<string, string> = {};
+function normalizeRoute(p: string) {
+  // 先頭/末尾の / を揃える
+  if (!p.startsWith("/")) p = `/${p}`;
+  if (!p.endsWith("/")) p = `${p}/`;
+  return p;
+}
 
-  for (const specifier of Object.keys(modules)) {
-    // specifier example: "../pages/blog/202512/2025-12-22.md"
-    const rel = specifier.replace(/^\.\.\/pages/, "");
-    const noExt = rel.replace(/\.md$/, "");
+function stripBase(pathname: string) {
+  // GitHub Pages の BASE_URL ありでも無しでも動くように剥がす
+  const base = import.meta.env.BASE_URL ?? "/";
+  const b = normalizeRoute(base);
+  const pn = normalizeRoute(pathname);
 
-    // Astro routing: index.md -> "/.../" , others -> "/.../name/"
-    const route = noExt.endsWith("/index")
-      ? `${noExt.slice(0, -"/index".length)}/`
-      : `${noExt}/`;
+  if (b !== "/" && pn.startsWith(b)) {
+    return normalizeRoute(pn.slice(b.length));
+  }
+  return pn;
+}
 
-    map[normalizePath(route)] = specifier;
+function walk(dir: string, out: string[] = []) {
+  if (!fs.existsSync(dir)) return out;
+
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    const st = fs.statSync(full);
+    if (st.isDirectory()) {
+      walk(full, out);
+    } else if (st.isFile()) {
+      if (name.endsWith(".md") || name.endsWith(".mdx")) out.push(full);
+    }
+  }
+  return out;
+}
+
+function buildRouteMap() {
+  const m = new Map<string, string>();
+
+  const files = walk(BLOG_DIR);
+  for (const abs of files) {
+    const relFromPages = toPosix(path.relative(PAGES_DIR, abs)); // blog/202601/x.md
+    const noExt = relFromPages.replace(/\.(md|mdx)$/i, "");       // blog/202601/x
+    const parts = noExt.split("/");
+
+    // index.md はそのディレクトリのルート扱い
+    let route: string;
+    if (parts.at(-1) === "index") {
+      route = "/" + parts.slice(0, -1).join("/") + "/";
+    } else {
+      route = "/" + noExt + "/";
+    }
+    m.set(normalizeRoute(route), abs);
   }
 
-  return map;
+  return m;
 }
 
-function getRouteMap(): Record<string, string> {
-  if (cachedRouteToModule) return cachedRouteToModule;
-  if (cachedRouteToModule === null) return {};
-
+function getFirstCommitISO(relPath: string): string | null {
   try {
-    cachedRouteToModule = buildRouteMap();
-    return cachedRouteToModule;
-  } catch {
-    cachedRouteToModule = null;
-    return {};
-  }
-}
+    // 最古（初回）コミットを取りたいので --reverse + -1 を使う
+    const out = execFileSync(
+      "git",
+      ["log", "--follow", "--reverse", "--format=%cI", "-1", "--", relPath],
+      { encoding: "utf8" }
+    ).trim();
 
-function safeGit(cmd: string): string | null {
-  try {
-    const out = execSync(cmd, {
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8",
-    });
-    const s = String(out ?? "").trim();
-    return s || null;
+    if (out) return out;
+
+    // もし環境差で取れない場合は全件取って最後（最古）にフォールバック
+    const out2 = execFileSync(
+      "git",
+      ["log", "--follow", "--format=%cI", "--", relPath],
+      { encoding: "utf8" }
+    ).trim();
+
+    if (!out2) return null;
+    const lines = out2.split(/\r?\n/).filter(Boolean);
+    return lines.at(-1) ?? null;
   } catch {
     return null;
   }
 }
 
-function formatHHMMSS(isoOrRfc3339: string): string | null {
-  const d = new Date(isoOrRfc3339);
+export function getPostTimeHHMMSS(pathname: string): string | null {
+  if (!ROUTE_MAP) ROUTE_MAP = buildRouteMap();
+
+  const routeKey = stripBase(pathname); // /blog/202601/xxx/
+  const file = ROUTE_MAP.get(routeKey);
+  if (!file) return null;
+
+  const rel = toPosix(path.relative(process.cwd(), file));
+  const iso = getFirstCommitISO(rel);
+  if (!iso) return null;
+
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
 
   const parts = new Intl.DateTimeFormat("ja-JP", {
@@ -64,49 +113,12 @@ function formatHHMMSS(isoOrRfc3339: string): string | null {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  })
-    .formatToParts(d)
-    .reduce((acc: Record<string, string>, p) => {
-      if (p.type !== "literal") acc[p.type] = p.value;
-      return acc;
-    }, {});
+  }).formatToParts(d);
 
-  const h = parts.hour ?? "00";
-  const m = parts.minute ?? "00";
-  const s = parts.second ?? "00";
-  return `${h}:${m}:${s}`;
-}
-
-/**
- * Try to infer the post's time-of-day from git history, based on the page route.
- *
- * - Prefers the "created" timestamp (first commit where the file was added)
- * - Falls back to the latest commit timestamp
- * - Returns null if git isn't available (e.g. zip builds) or route isn't a post
- */
-export function getPostTimeHHMMSS(routePathname: string): string | null {
-  const route = normalizePath(routePathname);
-  const routeMap = getRouteMap();
-  const specifier = routeMap[route];
-  if (!specifier) return null;
-
-  // Convert module specifier to an actual filesystem path
-  let filePath: string;
-  try {
-    filePath = fileURLToPath(new URL(specifier, import.meta.url));
-  } catch {
-    return null;
+  const map: Record<string, string> = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
   }
 
-  // Created time (first add). Requires enough git history.
-  const created = safeGit(
-    `git log --diff-filter=A --follow --format=%cI -1 -- "${filePath}"`
-  );
-  const createdHHMMSS = created ? formatHHMMSS(created) : null;
-  if (createdHHMMSS) return createdHHMMSS;
-
-  // Fallback: latest commit time
-  const updated = safeGit(`git log -1 --format=%cI -- "${filePath}"`);
-  const updatedHHMMSS = updated ? formatHHMMSS(updated) : null;
-  return updatedHHMMSS;
+  return `${map.hour}:${map.minute}:${map.second}`;
 }
